@@ -1,0 +1,436 @@
+<html>
+<head>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
+    <script
+  src="https://code.jquery.com/jquery-2.2.4.min.js"
+  integrity="sha256-BbhdlvQf/xTY9gja0Dq3HiwQF8LaCRTXxZKRutelT44="
+  crossorigin="anonymous"></script>
+<script>
+
+function assert(bool, msg) { if(!bool) { throw new Error("Assert failed:"+msg); }}
+
+function arraygen(num, callback) {
+    // Create an array from a generator function called with the index of the element
+    let r=[];
+    for(let i=0; i<num; i++) { r[i] = callback(i); }
+    return r;
+}
+
+function cmp(b, a) {
+    return ((a>b)?1:((a==b)?0:-1));
+}
+
+function selectof(num, max, callback) {
+    // Select num numbers from [0,max) without replacement
+    let r = arraygen(num, i=>i);
+    while(true) {
+        callback(r);
+        let stepped = false;
+        for(let i=num-1; i>=0; i--) {
+            let localmax = max-num+i;
+            //console.log("i=",i,"r[i]=",r[i],"localmax=",localmax);
+            if(r[i] < localmax) {
+                //console.log("can step");
+                r[i]++;
+                for(let j=i+1; j<num; j++) { r[j]=r[i]-i+j; }
+                stepped = true;
+                break;
+            }
+        }
+        if(!stepped) { break; }
+    }
+}
+
+function selectarr(list, num, callback) {
+    // Select num elements from list without replacement
+    selectof(num, list.length, ix => callback(ix.map(x=>list[x])) );
+}
+
+function loopbin(num, callback) {
+    // Yield all binary variations of num length, e.g. 000, 001, 010, 011, 100, ...
+    let r = arraygen(num, i=>0);
+    while(true) {
+        callback(r);
+        let stepped = false;
+        for(let i=num-1; i>=0; i--) {
+            if(r[i] == 0) {
+                r[i]=1;
+                for(let j=i+1; j<num; j++) { r[j]=0; }
+                stepped = true;
+                break;
+            }
+        }
+        if(!stepped) { break; }
+    }
+}
+
+function natural_bin(dims, ix) {
+    // Return the ix'th binary list of dims length for loop_natural_bin
+    if(dims <= 0) { return []; }
+    if(ix >= 2**dims) { throw new Error("nat overflow"); }
+    if(dims == 1) { return [ix]; }
+    let flag = (ix < 2**(dims-1));
+    return [flag ? 0 : 1].concat(natural_bin(dims-1, flag ? ix : 2**dims-ix-1));
+}
+
+function loop_natural_bin(num, callback) {
+    // Yield all binary variations of num length in an order where only one bit changes,
+    // e.g. 000, 001, 011, 010, 110, ...    
+    for(let i=0; i<2**num; i++) {
+        callback(natural_bin(num, i));
+    }
+}
+
+function loopallarr(list, callback) {
+    // Yield all subsets of list in "natural" order (only one change to next subset)
+    loop_natural_bin(list.length, ix => callback(list.filter((x,i)=>ix[i])) );
+}
+
+class Point {
+    constructor(coords) {
+        this.c = coords;
+    }
+    as_string() {
+        return '('+this.c.map(x => Math.floor(x*100)).join(', ')+')';
+    }
+    map(func) {
+        return new Point(this.c.map(func));
+    }
+    clone(p) {
+        return this.map(x=>x);
+    }
+    scale(a) {
+        return this.map(x=>x*a);
+    }
+    add(p) {
+        return this.map((x,i) => x+p.c[i]);
+    }
+    sub(p) {
+        return this.add(p.scale(-1));
+    }
+    is_zero() {
+        return this.c.every(x => x==0);
+    }
+    eq(p) {
+        return this.sub(p).is_zero();
+    }
+    dim() { // Dimensionality
+        return this.c.length;
+    }
+    len() {
+        return Math.sqrt(this.c.reduce((acc, cur) => (acc + cur*cur)));
+    }
+    norm() {
+        return this.scale(1/this.len());
+    }
+    dot(p) {
+        return this.c.reduce((acc, cur, i) => (acc + cur*p.c[i]));
+    }
+
+    rotate(coords, rad) {
+        // Rotate. coords is a list of 2 coordinate indices that we rotate.
+        assert(coords.length == 2, 'rotate coords');
+        let ca = coords[0];
+        let cb = coords[1];
+        let s = Math.sin(rad*Math.PI);
+        let c = Math.cos(rad*Math.PI);
+        let r = this.clone();
+        r.c[ca] = c*this.c[ca] + s*this.c[cb];
+        r.c[cb] = -s*this.c[ca] + c*this.c[cb];
+        return r;
+    }
+    
+    project(focd) {
+        // Project the point onto a subspace where the last coordinate is 0.
+        // focd is the distance of the focal point from the origin along
+        // this coordinate.
+        let last = this.dim()-1;
+        let r = [];
+        let h = this.c[last];
+        for(let i=0; i<last; i++) {
+            let x = this.c[i];
+            if(focd == h) { assert(false, 'project divz'); }
+            r.push(focd*x/(focd-h));
+        }
+        return new Point(r);
+    }
+    
+    foc_distance(focd) {
+        let last = this.dim()-1;
+        let p = this.clone();
+        p.c[last] -= focd;
+        return p.len();
+    }
+}
+
+
+class Poly {
+    // Collection of points
+
+    constructor(points) {
+        this.p = points;
+    }
+    
+    as_string() {
+        return '['+this.p.map(x => x.as_string()).join('; ')+']';
+    }
+    
+    map(func) {
+        return new Poly(this.p.map(func));
+    }
+    
+    mean() {
+        let p = this.p[0];
+        for(let i=1; i<this.p.length; i++) { p = p.add(this.p[i]); }
+        return p.scale(1/this.p.length);
+    }
+    
+    rotate(coords, rad) {
+        return this.map(p => p.rotate(coords, rad));
+    }
+    
+    project(focd) {
+        return this.map(p => p.project(focd));
+    }
+}
+
+
+class CubeAddress {
+    // Each address identifies a component, e.g. vertex, edge, face, cell, etc.
+    // An address is a list of coordinates, 0, 1 or '*' for free coordinates
+    
+    constructor(coords) {
+        this.coords = coords;
+    }
+    
+    string() {
+        return this.coords.join('.');
+    }
+    
+    point() {
+        return new Point(this.coords);
+    }
+    
+    loop(fill, callback) { 
+        // Yield more complete addresses by filling in`fill` '*'s with 0 or 1
+        // Coordinates that are free
+        let freeix = this.coords.map((x,i)=>[x,i]).filter(x=>x[0]=='*').map(x=>x[1]);
+        //console.log('freeix',freeix);
+        selectarr(freeix, fill, fillix => { // Select `fill` coordinates to fill in
+            //console.log('fillix',fillix);
+            loopallarr(fillix, toone => { // Select the coordinates that will become 1
+                //console.log('toone',toone);
+                callback(new CubeAddress(
+                    this.coords.map((x,i) => fillix.includes(i) ? (toone.includes(i)?1:0) : x)
+                ));
+            });    
+        });
+    }
+    
+    color() {
+        // Return a color unique to this address
+        assert(this.coords.length <= 6);
+        let conf = {
+            r: [3,2,1,2,3,1],
+            g: [2,3,3,1,2,3],
+            b: [1,3,2,1,3,2]
+        };
+        let r=0,g=0,b=0,rs=0,gs=0,bs=0;
+        this.coords.map((v,i) => {
+            if(v=='*'){v=.5;}
+            r += conf.r[i]*v;
+            rs += conf.r[i];
+            g += conf.g[i]*v;
+            gs += conf.g[i];
+            b += conf.b[i]*v;
+            bs += conf.b[i];
+        });
+        return [r/rs*255, g/gs*255, b/bs*255];
+    }
+}
+
+
+class Cube {
+    // Represents a hypercube
+    
+    constructor(dims, rotations) {
+        // dims is the number of dimensions
+        // rotations is a list of [[coord1, coord2], rad] to perform rotations
+    
+        const me = this;
+        me.base = new CubeAddress(arraygen(dims, i=>'*'));
+        // Get vertices
+        me.addr2ix = {}; // Vertex cubeaddress to index in Poly
+        let offset = new Point(arraygen(dims, i=>-.5)); // Make cube centered around the origin
+        let vertices = [];
+        me.base.loop(dims, addr => {
+            me.addr2ix[addr.string()] = vertices.length;
+            vertices.push(addr.point().add(offset));
+        });
+        me.vertices = new Poly(vertices);
+        
+        if(rotations) {
+            rotations.map(r => {
+                me.vertices = me.vertices.rotate(r[0], r[1]);
+            });
+        }
+        
+    }
+    
+    addr2point(addr) { return this.vertices.p[this.addr2ix[addr.string()]]; }
+    
+    draw(p5, focds, disp) {
+        let me = this;
+        let dims = me.vertices.p[0].dim();
+        assert(focds.length == dims-2, 'draw/1/focds');
+        
+        let current_addresses = [{addr: me.base, dim:dims, debug:'dim='+dims+';addr='+me.base.string()}];
+        for(let dim=dims; dim>2; dim--) {
+            //console.log("draw", dim, current_addresses);
+            assert(me.vertices.p[0].dim() == dim, 'draw/2/dim');
+        
+            let new_addresses = [];
+            current_addresses.map(cur_data => { // objects from the previous step, in order
+                let parts = [];
+                cur_data.addr.loop(1, part_addr => { 
+                    let points = [];
+                    part_addr.loop(dims-1, a => points.push(me.addr2point(a)));
+                    let part = new Poly(points);
+                    let dist = part.mean().foc_distance(focds[dims-dim]);
+                    parts.push({
+                        addr: part_addr, 
+                        dist: dist,
+                        debug: cur_data.debug+"/dim="+(dim-1)+';addr='+part_addr.string()+';d='+dist,
+                        prev_addr: cur_data.addr,
+                        dim: dim-1
+                    });
+                });
+                parts.sort((a,b) => cmp(a.dist, b.dist));
+                new_addresses = new_addresses.concat(parts);
+            });
+            
+            // Project onto 1 lower dimensional space
+            me.vertices = me.vertices.project(focds[dims-dim]);
+            current_addresses = new_addresses;
+        }
+        
+        //console.log(current_addresses);
+
+        current_addresses.map(data => {
+            let points = [];
+            data.addr.loop(2, a => points.push(me.addr2point(a)));
+            assert(points.length == 4);
+            assert(points[0].dim() == 2);
+            let color = data.prev_addr.color();
+            p5.fill(color[0], color[1], color[2], 200);
+            p5.quad(
+                disp(points[0].c[0]),
+                disp(points[0].c[1]),
+                disp(points[1].c[0]),
+                disp(points[1].c[1]),
+                disp(points[2].c[0]),
+                disp(points[2].c[1]),
+                disp(points[3].c[0]),
+                disp(points[3].c[1])
+            );
+ 
+        });
+
+    }
+    
+}
+
+
+// Unit tests
+function test() {
+    let t = function(func) { if(!func()) { console.error("Test failed",func);}else{console.log('OK');}}
+    let epsilon = .000001;
+    let p0 = new Point([0,0,0,0]);
+    let pa = new Point([0,0,0,1]);
+    let pb = new Point([0,0,1,0]);
+    let pab = new Point([0,0,1,1]);
+    t(x => p0.is_zero());
+    t(x => pa.add(pb).eq(pab));
+    t(x => !pa.is_zero());
+    t(x => pa.len() == 1);
+    t(x => pa.rotate([2,3], .5).sub(pb).len() < epsilon);
+    t(x => pa.rotate([0,1], .5).len() == 1);
+    t(x => pa.dot(pa) == 1);
+    t(x => pa.dot(pb) == 0);
+    t(x => pb.project(1).eq(new Point([0,0,1])));
+    t(x => pab.project(.5).eq(new Point([0,0,-1])));
+
+    let i=0; selectof(3,4,x=>i++); t(x=>i==4);
+    i=0; selectof(1,10,x=>i++); t(x=>i==10);
+
+    let ca = new CubeAddress(['*',9,'*','*',9]);
+    //ca.loop(2, x=>console.log(x.coords));
+}
+
+let dims = prompt('Dimensions? (3 to 6)');
+if(dims<3) { alert('Using 3'); dims=3; }
+if(dims>6) { alert('Using 6'); dims=6; }
+
+let config = {
+    'dims': dims,
+    'size': 500,
+    'zoom': 200,
+    'strokeweight': 2,
+    'rotations': [],
+};
+
+// Focal distances
+config.focd = arraygen(config.dims-2, i=>-5);
+
+for(let i=0; i<config.dims; i++) {
+    for(let j=i+1; j<config.dims; j++) {
+        config.rotations.push([[i,j], Math.random()]);
+    }
+}
+
+let myp5 = new p5(function(p5) {
+    
+    p5.setup = function() {
+        p5.createCanvas(config.size, config.size);
+        p5.noLoop();
+    };
+        
+    p5.draw = function() {
+    
+        let cube = new Cube(config.dims, config.rotations);
+    
+        p5.clear();
+        p5.background(255);
+        
+        p5.strokeWeight(config.strokeweight);
+        p5.stroke(0, 0, 0, 255); // rgba
+        p5.fill(255, 255, 255, 200); // rgba
+        // p5.line(0,0,10,10);
+        
+        let disp = x => x*config.zoom+config.size/2;
+        
+        cube.draw(p5, config.focd, disp);
+    }
+    
+});
+</script>
+</head>
+<body>
+    <main></main>
+    <div id="controls"></div>
+    <script>
+    let i=0;
+    let h='';
+    for(let c in config.rotations) {
+        h+='<a href="#" class="rotate" data-id="'+i+'">Rotate'+i+'</a> | ';
+        i++;
+    }
+    $('#controls').html(h);
+    $('.rotate').on('click', function() {
+        config.rotations[$(this).data('id')][1] += .03;
+        myp5.redraw();
+        return false;
+    });
+    </script>
+</body>
+</html>
