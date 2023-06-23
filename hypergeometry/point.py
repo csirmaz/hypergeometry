@@ -39,6 +39,9 @@ class Point:
     def eq(self, p: 'Point') -> bool:
         return ((self.c != p.c).sum() == 0)
 
+    def allclose(self, p: 'Point') -> bool:
+        return np.allclose(self.c, p.c)
+
     def rotate(self, coords, rad: float) -> 'Point':
         """Rotate. coords is a list of 2 coordinate indices that we rotate"""
         assert len(coords) == 2

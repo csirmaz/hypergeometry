@@ -1,11 +1,11 @@
 
-from typing import Iterable
+from typing import Iterable, Union
 import numpy as np
 
 from point import Point
 
 class Poly:
-    """A collection of points represented as a matrix"""
+    """A collection of points or vectors represented as a matrix"""
     
     def __init__(self, points):
         """Accepts a 2D matrix or a list of points"""
@@ -21,24 +21,80 @@ class Poly:
         return Point(self.p[x])
     
     def dim(self) -> int:
-        return self.at(0).dim()
+        """The number of dimensions"""
+        return self.p.shape[1]
+    
+    def num(self) -> int:
+        """The number of points/vectors"""
+        return self.p.shape[0]
+    
+    def eq(self, p: 'Poly') -> bool:
+        return ((self.p != p.p).sum() == 0)
+    
+    def allclose(self, p: 'Poly') -> bool:
+        return np.allclose(self.p, p.p)
     
     def to_points(self):
+        """Separate into an array of Point objects"""
         return [Point(p) for p in self.p]
     
     def mean(self) -> Point:
         return Point(np.average(self.p, axis=0))
     
+    def norm(self) -> 'Poly':
+        """Normalise each vector"""
+        return Poly(self.p / np.sqrt(np.square(self.p).sum(axis=1, keepdims=True)))
+    
     def rotate(self, coords: Iterable[int], rad: float) -> 'Poly':
+        """Rotate each point. coords is a list of 2 coordinate indices that we rotate"""
         # Can do it faster by directly interacting with the matrix
         return Poly([p.rotate(coords, rad) for p in self.to_points()])
     
-    def is_base(self) -> bool:
-        """Returns if the collection of vectors is a base (unit length and perpendicular)"""
+    def is_norm_basis(self) -> bool:
+        """Returns if the collection of vectors is a "normal" basis (vectors are unit length and pairwise perpendicular)"""
         dots = self.p @ self.p.transpose()
-        identity = np.identity(len(self.p))
-        return ((dots != identity).sum() == 0)
+        identity = np.identity(self.num())
+        return np.allclose(dots, identity)
 
+    def make_basis(self, strict=True) -> 'Poly':
+        """Transform the vectors in self into a "normal" basis (unit-length pairwise perpendicular vectors).
+        If strict=False, may leave out vectors if they are not linearly independent.
+        """
+        out = [self.at(0).norm()]
+        for i in range(1, self.num()):
+            v = self.at(i)
+            for j in range(0, i):
+                d = out[j].dot(v)
+                v = v.sub(out[j].scale(d))
+                if v.is_zero():
+                    if strict:
+                        raise Exception("make_basis: not independent")
+                    v = None
+            if v is not None:
+                out.append(v.norm())
+        return Poly(out)
+    
+    def apply_to(self, subject: Union['Poly', Point]) -> Union['Poly', Point]:
+        """Get the linear combination of vectors in `self` according to the vector(s) in `subject`.
+        If `self` is a basis, this converts vector(s) expressed in that basis into absolute coordinates."""
+        assert subject.dim() == self.num() # DIM==bNUM
+        if isinstance(subject, Point):
+            return Point(subject.c @ self.p) # <(1), DIM> @ <bNUM, bDIM> -> <(1), bDIM>
+        if isinstance(subject, Poly):
+            return Poly(subject.p @ self.p) # <NUM, DIM> @ <bNUM, bDIM> -> <NUM, bDIM>
+        raise Exception("apply_to: unknown type")
+    
+    def extract_from(self, subject: Union['Poly', Point]) -> Union['Poly', Point]:
+        """Replace the vector(s) in `subject` by coefficients related to the vectors in `self`.
+        If `self` is a basis, this expresses a vector defined with absolute coordinates in terms of that basis."""
+        assert subject.dim() == self.dim() # DIM==bDIM
+        length2 = np.square(self.p).sum(axis=1) # -> <bNUM>
+        if isinstance(subject, Point):
+            return Point((subject.c @ self.p.transpose()) / length2) # <(1), DIM> @ <bDIM, bNUM> -> <(1), bNUM>
+        if isinstance(subject, Poly):
+            return Poly((subject.p @ self.p.transpose()) / length2) # <NUM, DIM> @ <bDIM, bNUM> -> <NUM, bNUM>
+        raise Exception("extract_base_from: unknown type")
+        
 
 # Unit tests
 if __name__ == "__main__":
@@ -48,4 +104,15 @@ if __name__ == "__main__":
     p = Poly([p1, p2])
     assert p.dim() == 3
     assert p1.add(p2).scale(.5).eq(p.mean())
-    assert p.is_base()
+    assert p.is_norm_basis()
+    assert not Poly([[3,4],[6,8]]).norm().is_norm_basis()
+    assert Poly([p1.scale(2), p1.add(p2)]).make_basis().eq(p)
+    assert p.apply_to(Point([1,2])).eq(Point([0,2,1]))
+    assert p.apply_to(Poly([[1,2],[3,4]])).eq(Poly([[0,2,1],[0,4,3]]))
+
+    base2 = Poly(np.identity(3)).rotate((0,1),.2).rotate((1,2),.3)
+    points = Poly([[50,60,70],[-1,-3,-2]])
+    assert base2.apply_to(base2.extract_from(points)).allclose(points)
+    assert base2.apply_to(base2.extract_from(points.at(0))).allclose(points.at(0))
+    assert Poly([[2,0,0],[0,2,0]]).extract_from(Point([1,1,1])).allclose(Point([.5,.5]))
+    
