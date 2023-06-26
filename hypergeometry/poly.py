@@ -85,14 +85,14 @@ class Poly:
         raise Exception("apply_to: unknown type")
     
     def extract_from(self, subject: Union['Poly', Point]) -> Union['Poly', Point]:
-        """Replace the vector(s) in `subject` by coefficients related to the vectors in `self`.
-        If `self` is a basis, this expresses a vector defined with absolute coordinates in terms of that basis."""
-        assert subject.dim() == self.dim() # DIM==bDIM
-        length2 = np.square(self.p).sum(axis=1) # -> <bNUM>
+        """Return the vector(s) x for which xA=s, where A are the vectors in self, and s is the subject.
+        `self` must be an invertible matrix.
+        """
+        si = np.linalg.inv(self.p)
         if isinstance(subject, Point):
-            return Point((subject.c @ self.p.transpose()) / length2) # <(1), DIM> @ <bDIM, bNUM> -> <(1), bNUM>
+            return Point(subject.c @ si)
         if isinstance(subject, Poly):
-            return Poly((subject.p @ self.p.transpose()) / length2) # <NUM, DIM> @ <bDIM, bNUM> -> <NUM, bNUM>
+            return Poly(subject.p @ si)
         raise Exception("extract_base_from: unknown type")
         
 
@@ -114,5 +114,5 @@ if __name__ == "__main__":
     points = Poly([[50,60,70],[-1,-3,-2]])
     assert base2.apply_to(base2.extract_from(points)).allclose(points)
     assert base2.apply_to(base2.extract_from(points.at(0))).allclose(points.at(0))
-    assert Poly([[2,0,0],[0,2,0]]).extract_from(Point([1,1,1])).allclose(Point([.5,.5]))
     
+    assert Poly([[1,0],[1,1]]).extract_from(Point([10.9, 31.4])).allclose(Point([-20.5, 31.4]))

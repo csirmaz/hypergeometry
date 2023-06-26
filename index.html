@@ -7,66 +7,9 @@
   crossorigin="anonymous"></script>
 <script>
 
-function assert(bool, msg) { if(!bool) { throw new Error("Assert failed:"+msg); }}
-
-function arraygen(num, callback) {
-    // Create an array from a generator function called with the index of the element
-    let r=[];
-    for(let i=0; i<num; i++) { r[i] = callback(i); }
-    return r;
-}
-
-function cmp(b, a) {
-    return ((a>b)?1:((a==b)?0:-1));
-}
-
-let htmllog = '';
-function log(msg, dim) {
-    if(!config.logging) { return; }
-    // if(dim !== undefined && dim < 4) { return; }
-    htmllog += msg + '<br>';
-    $('#logs').html(htmllog);
-}
-
-
 function selectarr(list, num, callback) {
     // Select num elements from list without replacement
     selectof(num, list.length, ix => callback(ix.map(x=>list[x])) );
-}
-
-function loopbin(num, callback) {
-    // Yield all binary variations of num length, e.g. 000, 001, 010, 011, 100, ...
-    let r = arraygen(num, i=>0);
-    while(true) {
-        callback(r);
-        let stepped = false;
-        for(let i=num-1; i>=0; i--) {
-            if(r[i] == 0) {
-                r[i]=1;
-                for(let j=i+1; j<num; j++) { r[j]=0; }
-                stepped = true;
-                break;
-            }
-        }
-        if(!stepped) { break; }
-    }
-}
-
-function natural_bin(dims, ix) {
-    // Return the ix'th binary list of dims length for loop_natural_bin
-    if(dims <= 0) { return []; }
-    if(ix >= 2**dims) { throw new Error("nat overflow"); }
-    if(dims == 1) { return [ix]; }
-    let flag = (ix < 2**(dims-1));
-    return [flag ? 0 : 1].concat(natural_bin(dims-1, flag ? ix : 2**dims-ix-1));
-}
-
-function loop_natural_bin(num, callback) {
-    // Yield all binary variations of num length in an order where only one bit changes,
-    // e.g. 000, 001, 011, 010, 110, ...    
-    for(let i=0; i<2**num; i++) {
-        callback(natural_bin(num, i));
-    }
 }
 
 function loopallarr(list, callback) {
