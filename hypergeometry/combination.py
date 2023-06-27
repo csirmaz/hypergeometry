@@ -1,7 +1,7 @@
 
 import numpy as np
 
-from poly import Poly
+from hypergeometry.poly import Poly
 
 class Combination:
     """This class represents a subspace as the collection of points that are the linear combination

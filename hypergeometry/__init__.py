@@ -1,4 +1,6 @@
 
-from point import Point
-from poly import Poly
-from span import Span
+from hypergeometry.point import Point
+from hypergeometry.poly import Poly
+from hypergeometry.span import Span
+from hypergeometry.utils import select_of, loop_bin, loop_natural_bin
+

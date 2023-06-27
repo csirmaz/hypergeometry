@@ -1,9 +1,9 @@
 
 import numpy as np
 
-from point import Point
-from poly import Poly
-from combination import Combination
+from hypergeometry.point import Point
+from hypergeometry.poly import Poly
+from hypergeometry.combination import Combination
 
 class Span:
     """This class represents a subspace as a set of points that are spanned by a set of vectors (basis)

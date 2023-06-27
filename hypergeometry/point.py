@@ -5,7 +5,14 @@ class Point:
     
     def __init__(self, coords):
         self.c = np.array(coords)
-        
+    
+    def __str__(self):
+        return "(" + ", ".join((f"{x:.3f}" for x in self.c)) + ")"
+    
+    @classmethod
+    def zeros(cls, dim):
+        return Point(np.zeros((dim)))
+    
     def clone(self):
         return Point(self.c)
     
@@ -25,7 +32,7 @@ class Point:
         return self.c.shape[0]
 
     def is_zero(self) -> bool:
-        return (self.c.sum() == 0)
+        return self.allclose(Point.zeros(self.dim()))
     
     def length(self) -> float:
         return np.sqrt(np.square(self.c).sum())

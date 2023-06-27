@@ -2,7 +2,7 @@
 from typing import Iterable, Union
 import numpy as np
 
-from point import Point
+from hypergeometry.point import Point
 
 class Poly:
     """A collection of points or vectors represented as a matrix"""
@@ -13,6 +13,9 @@ class Poly:
             points = [p.c for p in points]
         self.p = np.array(points)
 
+    def __str__(self):
+        return "(" + ",\n".join((f"{p}" for p in self.to_points())) + ")"
+    
     def clone(self) -> 'Poly':
         return Poly(self.p)
         
@@ -37,6 +40,12 @@ class Poly:
     def to_points(self):
         """Separate into an array of Point objects"""
         return [Point(p) for p in self.p]
+    
+    def add(self, p: Point) -> 'Poly':
+        return Poly(self.p + p.c)
+    
+    def sub(self, p: Point) -> 'Poly':
+        return Poly(self.p - p.c)
     
     def mean(self) -> Point:
         return Point(np.average(self.p, axis=0))
@@ -66,6 +75,7 @@ class Poly:
             for j in range(0, i):
                 d = out[j].dot(v)
                 v = v.sub(out[j].scale(d))
+                # print(f"i={i} j={j} v_org={self.at(i)} out[j]={out[j]} d={d} v={v} {v.is_zero()}")
                 if v.is_zero():
                     if strict:
                         raise Exception("make_basis: not independent")
