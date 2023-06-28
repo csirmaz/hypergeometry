@@ -20,10 +20,10 @@ cube = Span(org=Point.all_coords_to(dim=DIM, v=-.5), basis=Poly.from_identity(DI
 # Rotate the cube
 for i in range(DIM):
     for j in range(i+1, DIM):
-        r = .25 # np.random.rand() * 2.
+        r = .3 # np.random.rand() * 2.
         cube = cube.rotate((i,j), r, around_origin=True)
 
-img_arr = np.zeros((IMAGE_SIZE, IMAGE_SIZE))
+img_arr = np.zeros((IMAGE_SIZE, IMAGE_SIZE, 3))
 
 def to_bucket(x):
     return int(x*ZOOM*IMAGE_SIZE+IMAGE_SIZE/2+.5)
@@ -31,17 +31,30 @@ def to_bucket(x):
 # Take a number of random points in the cube and project them
 while True:
     cube_points = Poly.from_random(num=CUBE_STEP, dim=DIM)
+    
     real_points = cube.apply_to(cube_points)
     projection = real_points
     for i in range(DIM - 2):
         projection = projection.project(FOCAL_DIST)
     assert projection.dim() == 2
     for i in range(CUBE_STEP):
-        img_arr[to_bucket(projection.p[i,0]), IMAGE_SIZE - to_bucket(projection.p[i,1])] += 1
+        img_arr[to_bucket(projection.p[i,0]), IMAGE_SIZE - to_bucket(projection.p[i,1]), 0] += 1
+        
+    # Create points on the edges
+    if False:
+        edge_points = (cube_points.p * 2.).astype(int).astype(float) # Move to vertex
+        r_ix = (np.random.rand(CUBE_STEP) * DIM).astype(int) # Where to keep the original coordinate?
+        edge_points[range(CUBE_STEP), r_ix] = cube_points.p[range(CUBE_STEP), r_ix]
+        projection = cube.apply_to(Poly(edge_points))
+        for i in range(DIM - 2):
+            projection = projection.project(FOCAL_DIST)
+        assert projection.dim() == 2
+        for i in range(CUBE_STEP):
+            img_arr[to_bucket(projection.p[i,0]), IMAGE_SIZE - to_bucket(projection.p[i,1]), 1] += 1
 
     # Calculate and save the image
-    img_max = np.max(img_arr) 
-    img_data = (img_arr / img_max * 255.).astype('B')
-    img = Image.fromarray(img_data, mode="P") # https://pillow.readthedocs.io/en/stable/handbook/concepts.html#concept-modes
+    img_max = np.max(img_arr, axis=(0,1))
+    img_data = (img_arr / img_max * 200. + (img_arr > 0) * 55.).astype('B')
+    img = Image.fromarray(img_data, mode="RGB") # https://pillow.readthedocs.io/en/stable/handbook/concepts.html#concept-modes
     img.save('image.png')
     print("Image updated", flush=True)
