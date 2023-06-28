@@ -10,15 +10,28 @@ from hypergeometry import Point, Poly, Span, loop_natural_bin
 # The picture plane is the set of points (*, *, picture_z, picture_w)
 picture_x = [-20, 20, 100] # Defines from-to and number of dots
 picture_y = [-20, 20, 100] # Defines from-to and number of dots
-picture_z = -5
-picture_w = -5
+picture_z = 0
+picture_w = 0
 
 foc1 = Point([0,0,0,-10])
 foc2 = Point([0,0,-10,0])
 
-# Define the cube
-cube = Poly(list(loop_natural_bin(4))).add(Point([-.5,-.5,-.5,-.5]))
+# Define the cube and remember important points
+cube_points = []
+direction_points = [] # Indices. These are the points along the coordinate axes (before rotation)
+for c in loop_natural_bin(4):
+    c_on = sum(c) # The number of 1 coordinates
+    i = len(cube_points)
+    if c_on == 0: assert i == 0
+    if c_on == 1: direction_points.append(i)
+    cube_points.append(c)
+cube = Poly(cube_points).add(Point([-.5,-.5,-.5,-.5]))
 # TODO Rotate the cube
+
+# Define a span from the cube
+assert len(direction_points) == 4
+cube_span = Span(org=cube.at(0), basis=Poly([cube.at(x).sub(cube.at(0)) for x in direction_points]))
+assert cube_span.basis.is_norm_basis()
 
 # Loop on the canvas/picture
 for i in range(picture_x[2]):

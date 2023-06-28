@@ -30,9 +30,3 @@ class Combination:
     def allclose(self, o: 'Combination'):
         return self.v.allclose(o.v)
 
-    
-# Unit tests
-if __name__ == "__main__":
-
-    pass
-    

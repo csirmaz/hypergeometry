@@ -18,28 +18,33 @@ class Poly:
     
     def clone(self) -> 'Poly':
         return Poly(self.p)
+    
+    def map(self, lmbd) -> 'Poly':
+        """Generate a new Poly object using a lambda function on Point objects"""
+        return Poly([lmbd(Point(p)) for p in self.p])
         
+    def dim(self) -> int:
+        """Return the number of dimensions"""
+        return self.p.shape[1]
+    
+    def num(self) -> int:
+        """Return the number of points/vectors"""
+        return self.p.shape[0]
+    
     def at(self, x: int) -> Point:
         """Return the x'th point as a Point object"""
         return Point(self.p[x])
     
-    def dim(self) -> int:
-        """The number of dimensions"""
-        return self.p.shape[1]
-    
-    def num(self) -> int:
-        """The number of points/vectors"""
-        return self.p.shape[0]
-    
-    def eq(self, p: 'Poly') -> bool:
-        return ((self.p != p.p).sum() == 0)
-    
-    def allclose(self, p: 'Poly') -> bool:
-        return np.allclose(self.p, p.p)
-    
     def to_points(self):
         """Separate into an array of Point objects"""
         return [Point(p) for p in self.p]
+    
+    def eq(self, p: 'Poly') -> bool:
+        return (self.p == p.p).all()
+    
+    def allclose(self, p: 'Poly') -> bool:
+        # Prevent broadcasting
+        return self.p.shape == p.p.shape and np.allclose(self.p, p.p)
     
     def add(self, p: Point) -> 'Poly':
         return Poly(self.p + p.c)
@@ -63,7 +68,7 @@ class Poly:
         """Returns if the collection of vectors is a "normal" basis (vectors are unit length and pairwise perpendicular)"""
         dots = self.p @ self.p.transpose()
         identity = np.identity(self.num())
-        return np.allclose(dots, identity)
+        return dots.shape == identity.shape and np.allclose(dots, identity)
 
     def make_basis(self, strict=True) -> 'Poly':
         """Transform the vectors in self into a "normal" basis (unit-length pairwise perpendicular vectors).
@@ -95,7 +100,8 @@ class Poly:
         raise Exception("apply_to: unknown type")
     
     def extract_from(self, subject: Union['Poly', Point]) -> Union['Poly', Point]:
-        """Return the vector(s) x for which xA=s, where A are the vectors in self, and s is the subject.
+        """Represent the point(s) in `subject` relative to the basis in `self` by
+        returning the vector(s) x for which xA=s, where A is `self`, and s is `subject`.
         `self` must be an invertible matrix.
         """
         si = np.linalg.inv(self.p)
@@ -105,24 +111,3 @@ class Poly:
             return Poly(subject.p @ si)
         raise Exception("extract_base_from: unknown type")
         
-
-# Unit tests
-if __name__ == "__main__":
-
-    p1 = Point([0,0,1])
-    p2 = Point([0,1,0])
-    p = Poly([p1, p2])
-    assert p.dim() == 3
-    assert p1.add(p2).scale(.5).eq(p.mean())
-    assert p.is_norm_basis()
-    assert not Poly([[3,4],[6,8]]).norm().is_norm_basis()
-    assert Poly([p1.scale(2), p1.add(p2)]).make_basis().eq(p)
-    assert p.apply_to(Point([1,2])).eq(Point([0,2,1]))
-    assert p.apply_to(Poly([[1,2],[3,4]])).eq(Poly([[0,2,1],[0,4,3]]))
-
-    base2 = Poly(np.identity(3)).rotate((0,1),.2).rotate((1,2),.3)
-    points = Poly([[50,60,70],[-1,-3,-2]])
-    assert base2.apply_to(base2.extract_from(points)).allclose(points)
-    assert base2.apply_to(base2.extract_from(points.at(0))).allclose(points.at(0))
-    
-    assert Poly([[1,0],[1,1]]).extract_from(Point([10.9, 31.4])).allclose(Point([-20.5, 31.4]))

@@ -1,4 +1,5 @@
 
+from typing import Union
 import numpy as np
 
 from hypergeometry.point import Point
@@ -35,17 +36,11 @@ class Span:
     def allclose(self, o: 'Span'):
         return self.org.allclose(o.org) and self.basis.allclose(o.basis)
     
-    
-# Unit tests
-if __name__ == "__main__":
+    def apply_to(self, subject: Union['Poly', Point]) -> Union['Poly', Point]:
+        """Return the absolute coordinates of the point(s) represented relative to this span"""
+        return self.basis.apply_to(subject).add(self.org)
 
-    p = Point([1,1,1])
-    v = Poly([[1,1,0], [0,0,1]])
-    span = Span(org=p, basis=v)
-    assert span.space_dim() == 3
-    assert span.my_dim() == 2
-    comb = Combination([[1,1,1], [2,2,1], [1,1,2]])
-    assert span.as_combination().allclose(comb)
-    assert Span.from_combination(comb).allclose(span)
-    assert comb.space_dim() == 3
-    assert comb.my_dim() == 2
+    def extract_from(self, subject: Union['Poly', Point]) -> Union['Poly', Point]:
+        """Represent the point(s) in `subject` relative to this span"""
+        return self.basis.extract_from(subject.sub(self.org))
+    

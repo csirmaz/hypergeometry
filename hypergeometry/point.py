@@ -13,7 +13,7 @@ class Point:
     def zeros(cls, dim):
         return Point(np.zeros((dim)))
     
-    def clone(self):
+    def clone(self) -> 'Point':
         return Point(self.c)
     
     def scale(self, x: float) -> 'Point':
@@ -28,10 +28,11 @@ class Point:
         return Point(self.c - p.c)
     
     def dim(self) -> int:
-        """Return number of dimensions"""
+        """Return the number of dimensions"""
         return self.c.shape[0]
 
     def is_zero(self) -> bool:
+        """Return if the point is very close to all 0s"""
         return self.allclose(Point.zeros(self.dim()))
     
     def length(self) -> float:
@@ -44,10 +45,22 @@ class Point:
         return np.dot(self.c, p.c)
 
     def eq(self, p: 'Point') -> bool:
-        return ((self.c != p.c).sum() == 0)
+        return (self.c == p.c).all()
+    
+    def lt(self, p: 'Point') -> bool:
+        return (self.c < p.c).all()
+
+    def le(self, p: 'Point') -> bool:
+        return (self.c <= p.c).all()
+
+    def gt(self, p: 'Point') -> bool:
+        return (self.c > p.c).all()
+
+    def ge(self, p: 'Point') -> bool:
+        return (self.c >= p.c).all()
 
     def allclose(self, p: 'Point') -> bool:
-        return np.allclose(self.c, p.c)
+        return self.c.shape == p.c.shape and np.allclose(self.c, p.c)
 
     def rotate(self, coords, rad: float) -> 'Point':
         """Rotate. coords is a list of 2 coordinate indices that we rotate"""
@@ -67,16 +80,3 @@ class Point:
         a = focd / (self.c[-1] - focd)
         return Point(self.c[:-1] * a)
 
-
-# Unit tests
-if __name__ == "__main__":
-
-    p1 = Point([0, 0, 1])
-    assert p1.scale(2).scale(.5).eq(p1)
-    assert p1.dim() == 3
-    assert p1.add(p1).scale(.5).eq(p1)
-    p2 = p1.clone()
-    p2.c[0] = 1
-    assert not p1.eq(p2)
-    assert p2.project(-5).dim() == 2
-    

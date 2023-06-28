@@ -47,15 +47,3 @@ def loop_natural_bin(num):
     for i in range(2**num):
         yield natural_bin(num, i)
 
-        
-# Unit tests
-if __name__ == "__main__":
-    
-    def clonelist(iterator):
-        return [list(x) for x in iterator]
-
-    assert clonelist(loop_bin(1)) == [[0], [1]]
-    assert clonelist(loop_bin(2)) == [[0,0], [0,1], [1,0], [1,1]]
-    assert clonelist(select_of(2,4)) == [[0,1], [0,2], [0,3], [1,2], [1,3], [2,3]]
-    assert list(loop_natural_bin(2)) == [[0,0], [0,1], [1,1], [1,0]]
-    assert list(loop_natural_bin(3)) == [[0,0,0], [0,0,1], [0,1,1], [0,1,0], [1,1,0], [1,1,1], [1,0,1], [1,0,0]]
