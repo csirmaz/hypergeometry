@@ -1,7 +1,10 @@
 
 import numpy as np
 
+from hypergeometry.utils import loop_many_to
+
 class Point:
+    """Represents a point or vector of arbitrary dimensions"""
     
     def __init__(self, coords):
         self.c = np.array(coords)
@@ -11,12 +14,34 @@ class Point:
     
     @classmethod
     def zeros(cls, dim):
+        """Create a Point of `dim` dimensions with all coordinates being 0"""
         return Point(np.zeros((dim)))
     
+    @classmethod
+    def ones(cls, dim: int) -> 'Point':
+        """Create a Point of `dim` dimensions with all coordinates being 1"""
+        return Point(np.ones((dim)))
+    
+    @classmethod
+    def all_coords_to(cls, dim: int, v: float) -> 'Point':
+        """Create a Point of `dim` dimensions with all coordinates being `v`"""
+        return Point([v for i in range(dim)])
+    
+    @classmethod
+    def generate_grid(cls, dim: int, steps: int) -> 'Point':
+        """Yield all points in the [0,1]**dim region (inclusive) in a grid
+        that has `steps+1` points along the axes.
+        WARNING Mutates and yields the same object"""
+        r = cls.zeros(dim)
+        for r_ in loop_many_to(num=dim, max=steps, arr=r.c, scaled=True):
+            yield r
+    
     def clone(self) -> 'Point':
+        """Return a deep clone"""
         return Point(self.c)
     
     def scale(self, x: float) -> 'Point':
+        """Scale the current vector/point by a scalar"""
         return Point(self.c * x)
     
     def add(self, p: 'Point') -> 'Point':
@@ -32,10 +57,11 @@ class Point:
         return self.c.shape[0]
 
     def is_zero(self) -> bool:
-        """Return if the point is very close to all 0s"""
+        """Return all coordinates are very close to 0"""
         return self.allclose(Point.zeros(self.dim()))
     
     def length(self) -> float:
+        """Return the length of the vector"""
         return np.sqrt(np.square(self.c).sum())
     
     def norm(self) -> 'Point':
@@ -77,6 +103,6 @@ class Point:
         """Project the point onto a subspace where the last coordinate is 0.
         focd is the distance of the focal point from the origin along this coordinate.
         """
-        a = focd / (self.c[-1] - focd)
+        a = focd / (focd - self.c[-1])
         return Point(self.c[:-1] * a)
 

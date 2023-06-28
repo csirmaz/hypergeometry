@@ -3,7 +3,8 @@
 
 import numpy as np
 
-from hypergeometry import Point, Poly, Span, Combination, loop_bin, select_of, loop_natural_bin
+from hypergeometry import Point, Poly, Span, Combination, loop_bin, select_of, loop_natural_bin, loop_many_to
+
 
 def point_test():
     p1 = Point([0, 0, 1])
@@ -18,6 +19,15 @@ def point_test():
     assert not p1.allclose(p2)
     assert p2.ge(p1)
     assert p2.project(-5).dim() == 2
+    
+    target=[
+        Point([0,0]), Point([0,.5]), Point([0,1]),
+        Point([.5,0]), Point([.5,.5]), Point([.5,1]),
+        Point([1,0]), Point([1,.5]), Point([1,1]),
+    ]
+    for i, p in enumerate(Point.generate_grid(dim=2, steps=2)):
+        assert target[i].eq(p)
+
 
 def poly_test():
     p1 = Point([0,0,1])
@@ -30,6 +40,7 @@ def poly_test():
     assert Poly([p1.scale(2), p1.add(p2)]).make_basis().eq(p)
     assert p.apply_to(Point([1,2])).eq(Point([0,2,1]))
     assert p.apply_to(Poly([[1,2],[3,4]])).eq(Poly([[0,2,1],[0,4,3]]))
+    assert p.project(-10).allclose(Poly(p.p[:,:-1]))
 
     base2 = Poly(np.identity(3)).rotate((0,1),.2).rotate((1,2),.3)
     points = Poly([[50,60,70],[-1,-3,-2]])
@@ -37,6 +48,7 @@ def poly_test():
     assert base2.apply_to(base2.extract_from(points.at(0))).allclose(points.at(0))
     
     assert Poly([[1,0],[1,1]]).extract_from(Point([10.9, 31.4])).allclose(Point([-20.5, 31.4]))
+
 
 def span_test():
     p = Point([1,1,1])
@@ -59,6 +71,7 @@ def span_test():
     p3 = Point([2,1])
     assert span.apply_to(p3).allclose(p2)
 
+
 def util_test():
     def clonelist(iterator):
         return [list(x) for x in iterator]
@@ -68,6 +81,7 @@ def util_test():
     assert clonelist(select_of(2,4)) == [[0,1], [0,2], [0,3], [1,2], [1,3], [2,3]]
     assert list(loop_natural_bin(2)) == [[0,0], [0,1], [1,1], [1,0]]
     assert list(loop_natural_bin(3)) == [[0,0,0], [0,0,1], [0,1,1], [0,1,0], [1,1,0], [1,1,1], [1,0,1], [1,0,0]]
+    assert clonelist(loop_many_to(2, 3)) == [[0,0], [0,1], [0,2], [1,0], [1,1], [1,2], [2,0], [2,1], [2,2]]
     
 
 point_test()

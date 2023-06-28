@@ -1,8 +1,8 @@
 
 
-def select_of(num, max):
-    """Yield all sets of num numbers from [0,max) without replacement"""
-    # WARNING The yielded list is mutated
+def select_of(num: int, max: int):
+    """Yield all sets of num numbers from [0,max) without replacement.
+    WARNING Mutates and yields the same list."""
     r = list(range(num))
     while True:
         yield r
@@ -17,9 +17,9 @@ def select_of(num, max):
             break
         
 
-def loop_bin(num):
-    """Yield all binary variations of `num` length"""
-    # WARNING The yielded list is mutated
+def loop_bin(num: int):
+    """Yield all binary variations of `num` length.
+    WARNING Mutates and yields the same list."""
     r = [0 for i in range(num)]
     while True:
         yield r
@@ -33,7 +33,30 @@ def loop_bin(num):
             break
 
 
-def natural_bin(dim, ix):
+def loop_many_to(num: int, max: int, arr=None, scaled=False):
+    """Yield list of `num` length where each element loops from 0 to `max-1`.
+    WARNING Mutates and yields the same list.
+    If `arr` is specified, it mutates that.
+    If `scaled`, scales the results so the maximum becomes 1.
+    """
+    r = arr
+    if r is None:
+        r = [0 for i in range(num)]
+    max_value = 1. if scaled else max - 1
+    step = 1. / max if scaled else 1
+    while True:
+        yield r
+        for i in range(num-1, -1, -1):
+            if r[i] < max_value:
+                r[i] += step
+                for j in range(i+1, num, 1):
+                    r[j] = 0
+                break
+        else:
+            break
+
+
+def natural_bin(dim: int, ix: int):
     """Return the ix'th binary list of dims length for loop_natural_bin()"""
     if dim <= 0: return []
     if dim == 1: return [ix]

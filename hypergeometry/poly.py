@@ -16,11 +16,22 @@ class Poly:
     def __str__(self):
         return "(" + ",\n".join((f"{p}" for p in self.to_points())) + ")"
     
+    @classmethod
+    def from_identity(cls, dim: int) -> 'Poly':
+        """Create a Poly from an identity matrix"""
+        return Poly(np.identity(dim))
+
+    @classmethod
+    def from_random(cls, dim: int, num: int) -> 'Poly':
+        """Create a Poly from values from a uniform distribution over `[0,1)`."""
+        return Poly(np.random.rand(num, dim))
+    
     def clone(self) -> 'Poly':
+        """Returns a deep clone"""
         return Poly(self.p)
     
     def map(self, lmbd) -> 'Poly':
-        """Generate a new Poly object using a lambda function on Point objects"""
+        """Generate a new Poly object using a lambda function applied to Point objects"""
         return Poly([lmbd(Point(p)) for p in self.p])
         
     def dim(self) -> int:
@@ -63,6 +74,13 @@ class Poly:
         """Rotate each point. coords is a list of 2 coordinate indices that we rotate"""
         # Can do it faster by directly interacting with the matrix
         return Poly([p.rotate(coords, rad) for p in self.to_points()])
+
+    def project(self, focd: float) -> 'Poly':
+        """Project the points onto a subspace where the last coordinate is 0.
+        `focd` is the distance of the focal point from the origin along this coordinate.
+        """
+        a = focd / (focd - self.p[:,-1])
+        return Poly(self.p[:,:-1] * np.expand_dims(a, axis=1))
     
     def is_norm_basis(self) -> bool:
         """Returns if the collection of vectors is a "normal" basis (vectors are unit length and pairwise perpendicular)"""

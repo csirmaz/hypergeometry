@@ -1,5 +1,5 @@
 
-from typing import Union
+from typing import Union, Iterable
 import numpy as np
 
 from hypergeometry.point import Point
@@ -43,4 +43,10 @@ class Span:
     def extract_from(self, subject: Union['Poly', Point]) -> Union['Poly', Point]:
         """Represent the point(s) in `subject` relative to this span"""
         return self.basis.extract_from(subject.sub(self.org))
+    
+    def rotate(self, coords: Iterable[int], rad: float, around_origin: bool = False) -> 'Span':
+        new_org = self.org
+        if around_origin:
+            new_org = new_org.rotate(coords=coords, rad=rad)
+        return Span(org=new_org, basis=self.basis.rotate(coords=coords, rad=rad))
     
