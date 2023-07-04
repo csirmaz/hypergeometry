@@ -18,7 +18,7 @@ def point_test():
     assert not p1.eq(p2)
     assert not p1.allclose(p2)
     assert p2.ge(p1)
-    assert p2.project(-5).dim() == 2
+    assert p2.persp_reduce(-5).dim() == 2
     
     target=[
         Point([0,0]), Point([0,.5]), Point([0,1]),
@@ -35,19 +35,21 @@ def poly_test():
     p = Poly([p1, p2])
     assert p.dim() == 3
     assert p1.add(p2).scale(.5).eq(p.mean())
-    assert p.is_norm_basis()
-    assert not Poly([[3,4],[6,8]]).norm().is_norm_basis()
+    assert p.is_orthonormal()
+    assert not Poly([[3,4],[6,8]]).norm().is_orthonormal()
     assert Poly([p1.scale(2), p1.add(p2)]).make_basis().eq(p)
     assert p.apply_to(Point([1,2])).eq(Point([0,2,1]))
     assert p.apply_to(Poly([[1,2],[3,4]])).eq(Poly([[0,2,1],[0,4,3]]))
-    assert p.project(-10).allclose(Poly(p.p[:,:-1]))
+    assert p.persp_reduce(-10).allclose(Poly(p.p[:,:-1]))
 
-    base2 = Poly(np.identity(3)).rotate((0,1),.2).rotate((1,2),.3)
+    base2 = Poly.from_identity(3).rotate((0,1),.2).rotate((1,2),.3)
+    assert base2.is_orthonormal()
     points = Poly([[50,60,70],[-1,-3,-2]])
     assert base2.apply_to(base2.extract_from(points)).allclose(points)
     assert base2.apply_to(base2.extract_from(points.at(0))).allclose(points.at(0))
-    
     assert Poly([[1,0],[1,1]]).extract_from(Point([10.9, 31.4])).allclose(Point([-20.5, 31.4]))
+    # assert Poly([[1,0,0],[1,1,0]]).extract_from(Point([10.9, 31.4, 100])).allclose(Point([-20.5, 31.4]))
+    assert Poly([[-1,0,0],[0,1,0]]).extract_from(Point([10.9, 31.4, 100])).allclose(Point([-10.9, 31.4]))
 
 
 def span_test():

@@ -35,7 +35,7 @@ while True:
     real_points = cube.apply_to(cube_points)
     projection = real_points
     for i in range(DIM - 2):
-        projection = projection.project(FOCAL_DIST)
+        projection = projection.persp_reduce(FOCAL_DIST)
     assert projection.dim() == 2
     for i in range(CUBE_STEP):
         img_arr[to_bucket(projection.p[i,0]), IMAGE_SIZE - to_bucket(projection.p[i,1]), 0] += 1
@@ -47,7 +47,7 @@ while True:
         edge_points[range(CUBE_STEP), r_ix] = cube_points.p[range(CUBE_STEP), r_ix]
         projection = cube.apply_to(Poly(edge_points))
         for i in range(DIM - 2):
-            projection = projection.project(FOCAL_DIST)
+            projection = projection.presp_reduce(FOCAL_DIST)
         assert projection.dim() == 2
         for i in range(CUBE_STEP):
             img_arr[to_bucket(projection.p[i,0]), IMAGE_SIZE - to_bucket(projection.p[i,1]), 1] += 1

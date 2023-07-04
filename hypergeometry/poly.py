@@ -7,11 +7,12 @@ from hypergeometry.point import Point
 class Poly:
     """A collection of points or vectors represented as a matrix"""
     
-    def __init__(self, points):
+    def __init__(self, points, orthonormal: bool = False):
         """Accepts a 2D matrix or a list of points"""
         if isinstance(points[0], Point):
             points = [p.c for p in points]
         self.p = np.array(points)
+        self.orthonormal = orthonormal  # only True if known to be orthonormal
 
     def __str__(self):
         return "(" + ",\n".join((f"{p}" for p in self.to_points())) + ")"
@@ -19,7 +20,7 @@ class Poly:
     @classmethod
     def from_identity(cls, dim: int) -> 'Poly':
         """Create a Poly from an identity matrix"""
-        return Poly(np.identity(dim))
+        return Poly(np.identity(dim), orthonormal=True)
 
     @classmethod
     def from_random(cls, dim: int, num: int) -> 'Poly':
@@ -28,7 +29,7 @@ class Poly:
     
     def clone(self) -> 'Poly':
         """Returns a deep clone"""
-        return Poly(self.p)
+        return Poly(self.p, orthonormal=self.orthonormal)
     
     def map(self, lmbd) -> 'Poly':
         """Generate a new Poly object using a lambda function applied to Point objects"""
@@ -58,9 +59,11 @@ class Poly:
         return self.p.shape == p.p.shape and np.allclose(self.p, p.p)
     
     def add(self, p: Point) -> 'Poly':
+        """Add a point/vector to each point/vector in this Poly"""
         return Poly(self.p + p.c)
     
     def sub(self, p: Point) -> 'Poly':
+        """Subtract a point/vector from each point/vector in this Poly"""
         return Poly(self.p - p.c)
     
     def mean(self) -> Point:
@@ -73,23 +76,28 @@ class Poly:
     def rotate(self, coords: Iterable[int], rad: float) -> 'Poly':
         """Rotate each point. coords is a list of 2 coordinate indices that we rotate"""
         # Can do it faster by directly interacting with the matrix
-        return Poly([p.rotate(coords, rad) for p in self.to_points()])
+        return Poly([p.rotate(coords, rad) for p in self.to_points()], orthonormal=self.orthonormal)
 
-    def project(self, focd: float) -> 'Poly':
+    def persp_reduce(self, focd: float) -> 'Poly':
         """Project the points onto a subspace where the last coordinate is 0.
         `focd` is the distance of the focal point from the origin along this coordinate.
         """
         a = focd / (focd - self.p[:,-1])
         return Poly(self.p[:,:-1] * np.expand_dims(a, axis=1))
     
-    def is_norm_basis(self) -> bool:
-        """Returns if the collection of vectors is a "normal" basis (vectors are unit length and pairwise perpendicular)"""
+    def is_orthonormal(self, force=False) -> bool:
+        """Returns if the collection of vectors is an orthonormal basis (vectors are unit length and pairwise perpendicular)"""
+        if self.orthonormal and not force:
+            return True
         dots = self.p @ self.p.transpose()
         identity = np.identity(self.num())
-        return dots.shape == identity.shape and np.allclose(dots, identity)
+        if dots.shape == identity.shape and np.allclose(dots, identity):
+            self.orthonormal = True
+            return True
+        return False
 
     def make_basis(self, strict=True) -> 'Poly':
-        """Transform the vectors in self into a "normal" basis (unit-length pairwise perpendicular vectors).
+        """Transform the vectors in self into an orthonormal basis (unit-length pairwise perpendicular vectors).
         If strict=False, may leave out vectors if they are not linearly independent.
         """
         out = [self.at(0).norm()]
@@ -105,7 +113,7 @@ class Poly:
                     v = None
             if v is not None:
                 out.append(v.norm())
-        return Poly(out)
+        return Poly(out, orthonormal=True)
     
     def apply_to(self, subject: Union['Poly', Point]) -> Union['Poly', Point]:
         """Get the linear combination of vectors in `self` according to the vector(s) in `subject`.
@@ -118,11 +126,18 @@ class Poly:
         raise Exception("apply_to: unknown type")
     
     def extract_from(self, subject: Union['Poly', Point]) -> Union['Poly', Point]:
-        """Represent the point(s) in `subject` relative to the basis in `self` by
-        returning the vector(s) x for which xA=s, where A is `self`, and s is `subject`.
-        `self` must be an invertible matrix.
         """
-        si = np.linalg.inv(self.p)
+        If `self` is a square invertible matrix, represent the point(s) in `subject` 
+        relative to the basis in `self` by returning the vector(s) x for which 
+        xA=s, where A is `self`, and s is `subject`.
+        If `self` is a non-square orthonormal matrix, represent the projection of
+        the point(s) in `subject` relative to this basis onto the subspace represented
+        by `self`.
+        """
+        if self.is_orthonormal():
+            si = self.p.transpose()
+        else:
+            si = np.linalg.inv(self.p)
         if isinstance(subject, Point):
             return Point(subject.c @ si)
         if isinstance(subject, Poly):

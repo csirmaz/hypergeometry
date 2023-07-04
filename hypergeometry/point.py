@@ -99,7 +99,7 @@ class Point:
         r.c[cb] = -s * self.c[ca] + c * self.c[cb]
         return r
     
-    def project(self, focd: float) -> 'Point':
+    def persp_reduce(self, focd: float) -> 'Point':
         """Project the point onto a subspace where the last coordinate is 0.
         focd is the distance of the focal point from the origin along this coordinate.
         """
