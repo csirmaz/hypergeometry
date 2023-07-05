@@ -43,6 +43,9 @@ class Poly:
         """Return the number of points/vectors"""
         return self.p.shape[0]
     
+    def is_square(self) -> bool:
+        return self.p.shape[0] == self.p.shape[1]
+    
     def at(self, x: int) -> Point:
         """Return the x'th point as a Point object"""
         return Point(self.p[x])
@@ -127,17 +130,27 @@ class Poly:
     
     def extract_from(self, subject: Union['Poly', Point]) -> Union['Poly', Point]:
         """
-        If `self` is a square invertible matrix, represent the point(s) in `subject` 
-        relative to the basis in `self` by returning the vector(s) x for which 
-        xA=s, where A is `self`, and s is `subject`.
-        If `self` is a non-square orthonormal matrix, represent the projection of
-        the point(s) in `subject` relative to this basis onto the subspace represented
-        by `self`.
+        Represent the point(s) in `subject` relative to the basis in `self`.
+        
+        If `self` is a square matrix, require that it be invertible (that is,
+        the vectors in the basis are linearly independent and so the basis spans
+        the whole space), and return x=<subj>@<basis>^-1, that is, vectors x for which
+        x@<basis>=<subject>.
+        
+        If `self` is not square, return the coordinates which make up the projection of
+        the subject onto the subspace spanned by the basis relative to it. 
+        If `self` is orthonormal, use the transpose, which may be more accurate.
+        Otherwise, use the pseudo-inverse of the matrix, which, however, does not
+        warn if the vectors in the basis are not independent.
         """
-        if self.is_orthonormal():
-            si = self.p.transpose()
-        else:
+        if self.is_square():
             si = np.linalg.inv(self.p)
+            # Throws exception if not invertible
+        else:
+            if self.is_orthonormal():
+                si = self.p.transpose()
+            else:
+                si = np.linalg.pinv(self.p)
         if isinstance(subject, Point):
             return Point(subject.c @ si)
         if isinstance(subject, Poly):

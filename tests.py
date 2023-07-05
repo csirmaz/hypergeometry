@@ -48,7 +48,7 @@ def poly_test():
     assert base2.apply_to(base2.extract_from(points)).allclose(points)
     assert base2.apply_to(base2.extract_from(points.at(0))).allclose(points.at(0))
     assert Poly([[1,0],[1,1]]).extract_from(Point([10.9, 31.4])).allclose(Point([-20.5, 31.4]))
-    # assert Poly([[1,0,0],[1,1,0]]).extract_from(Point([10.9, 31.4, 100])).allclose(Point([-20.5, 31.4]))
+    assert Poly([[1,0,0],[1,1,0]]).extract_from(Point([10.9, 31.4, 100])).allclose(Point([-20.5, 31.4]))
     assert Poly([[-1,0,0],[0,1,0]]).extract_from(Point([10.9, 31.4, 100])).allclose(Point([-10.9, 31.4]))
 
 
