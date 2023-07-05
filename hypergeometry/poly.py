@@ -7,12 +7,15 @@ from hypergeometry.point import Point
 class Poly:
     """A collection of points or vectors represented as a matrix"""
     
-    def __init__(self, points, orthonormal: bool = False):
+    def __init__(self, points):
         """Accepts a 2D matrix or a list of points"""
         if isinstance(points[0], Point):
             points = [p.c for p in points]
         self.p = np.array(points)
-        self.orthonormal = orthonormal  # only True if known to be orthonormal
+        self.orthonormal = None  # True of False if known to be orthonormal
+        self.transpose = None  # caches to save time
+        self.inverse = None  # caches to save time
+        self.pseudoinverse = None
 
     def __str__(self):
         return "(" + ",\n".join((f"{p}" for p in self.to_points())) + ")"
@@ -20,16 +23,43 @@ class Poly:
     @classmethod
     def from_identity(cls, dim: int) -> 'Poly':
         """Create a Poly from an identity matrix"""
-        return Poly(np.identity(dim), orthonormal=True)
+        r = Poly(np.identity(dim))
+        r.orthonormal = True
+        return r
 
     @classmethod
     def from_random(cls, dim: int, num: int) -> 'Poly':
         """Create a Poly from values from a uniform distribution over `[0,1)`."""
         return Poly(np.random.rand(num, dim))
     
+    def reset_cache(self) -> 'Poly':
+        """Remove cached calculations. Use if the matrix is mutated"""
+        self.orthonormal = None
+        self.transpose = None
+        self.inverse = None
+        self.pseudoinverse = None
+        return self
+    
+    def _get_transpose(self) -> np.ndarray:
+        if self.transpose is None:
+            self.transpose = self.p.transpose()
+        return self.transpose
+    
+    def _get_inverse(self) -> np.ndarray:
+        if self.inverse is None:
+            self.inverse = np.linalg.inv(self.p)
+        return self.inverse
+
+    def _get_pseudoinverse(self) -> np.ndarray:
+        if self.pseudoinverse is None:
+            self.pseudoinverse = np.linalg.pinv(self.p)
+        return self.pseudoinverse
+    
     def clone(self) -> 'Poly':
         """Returns a deep clone"""
-        return Poly(self.p, orthonormal=self.orthonormal)
+        r = Poly(self.p)
+        r.orthonormal = self.orthonormal
+        return r
     
     def map(self, lmbd) -> 'Poly':
         """Generate a new Poly object using a lambda function applied to Point objects"""
@@ -58,6 +88,7 @@ class Poly:
         return (self.p == p.p).all()
     
     def allclose(self, p: 'Poly') -> bool:
+        """Return if all values of two Poly objects are sufficiently close"""
         # Prevent broadcasting
         return self.p.shape == p.p.shape and np.allclose(self.p, p.p)
     
@@ -79,7 +110,9 @@ class Poly:
     def rotate(self, coords: Iterable[int], rad: float) -> 'Poly':
         """Rotate each point. coords is a list of 2 coordinate indices that we rotate"""
         # Can do it faster by directly interacting with the matrix
-        return Poly([p.rotate(coords, rad) for p in self.to_points()], orthonormal=self.orthonormal)
+        r = Poly([p.rotate(coords, rad) for p in self.to_points()])
+        r.orthonormal = self.orthonormal
+        return r
 
     def persp_reduce(self, focd: float) -> 'Poly':
         """Project the points onto a subspace where the last coordinate is 0.
@@ -90,13 +123,14 @@ class Poly:
     
     def is_orthonormal(self, force=False) -> bool:
         """Returns if the collection of vectors is an orthonormal basis (vectors are unit length and pairwise perpendicular)"""
-        if self.orthonormal and not force:
-            return True
+        if self.orthonormal is not None and not force:
+            return self.orthonormal
         dots = self.p @ self.p.transpose()
         identity = np.identity(self.num())
         if dots.shape == identity.shape and np.allclose(dots, identity):
             self.orthonormal = True
             return True
+        self.orthonormal = False
         return False
 
     def make_basis(self, strict=True) -> 'Poly':
@@ -116,7 +150,9 @@ class Poly:
                     v = None
             if v is not None:
                 out.append(v.norm())
-        return Poly(out, orthonormal=True)
+        r = Poly(out)
+        assert r.is_orthonormal()
+        return r
     
     def apply_to(self, subject: Union['Poly', Point]) -> Union['Poly', Point]:
         """Get the linear combination of vectors in `self` according to the vector(s) in `subject`.
@@ -144,13 +180,13 @@ class Poly:
         warn if the vectors in the basis are not independent.
         """
         if self.is_square():
-            si = np.linalg.inv(self.p)
+            si = self._get_inverse()
             # Throws exception if not invertible
         else:
             if self.is_orthonormal():
-                si = self.p.transpose()
+                si = self._get_transpose()
             else:
-                si = np.linalg.pinv(self.p)
+                si = self._get_pseudoinverse()
         if isinstance(subject, Point):
             return Point(subject.c @ si)
         if isinstance(subject, Poly):
