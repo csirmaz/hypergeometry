@@ -1,5 +1,6 @@
 
-from typing import Union, Iterable
+from typing import Union, Iterable, Any
+Self=Any
 import numpy as np
 
 from hypergeometry.point import Point
@@ -27,13 +28,13 @@ class Span:
         return self.basis.num()
     
     @classmethod
-    def from_combination(cls, comb: Combination) -> 'Span':
-        return Span(org=comb.at(0), basis=Poly(comb.v.p[1:] - comb.v.p[0]))
+    def from_combination(cls, comb: Combination) -> Self:
+        return cls(org=comb.at(0), basis=Poly(comb.v.p[1:] - comb.v.p[0]))
     
     def as_combination(self) -> Combination:
         return Combination(np.concatenate((np.zeros((1, self.space_dim())), self.basis.p), axis=0) + self.org.c)
     
-    def allclose(self, o: 'Span'):
+    def allclose(self, o: Self):
         return self.org.allclose(o.org) and self.basis.allclose(o.basis)
     
     def apply_to(self, subject: Union['Poly', Point]) -> Union['Poly', Point]:
@@ -44,9 +45,14 @@ class Span:
         """Represent the point(s) in `subject` relative to this span"""
         return self.basis.extract_from(subject.sub(self.org))
     
-    def rotate(self, coords: Iterable[int], rad: float, around_origin: bool = False) -> 'Span':
+    def rotate(self, coords: Iterable[int], rad: float, around_origin: bool = False) -> Self:
         new_org = self.org
         if around_origin:
             new_org = new_org.rotate(coords=coords, rad=rad)
-        return Span(org=new_org, basis=self.basis.rotate(coords=coords, rad=rad))
+        return self.__class__(org=new_org, basis=self.basis.rotate(coords=coords, rad=rad))
     
+    def persp_reduce(self, focd: float):
+        return self.__class__(
+            org=self.org.persp_reduce(focd),
+            basis=self.basis.persp_reduce(focd)
+        )

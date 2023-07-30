@@ -34,6 +34,7 @@ def poly_test():
     p2 = Point([0,1,0])
     p = Poly([p1, p2])
     assert p.dim() == 3
+    assert p.sum().eq(p1.add(p2))
     assert p1.add(p2).scale(.5).eq(p.mean())
     assert p.is_orthonormal()
     assert not Poly([[3,4],[6,8]]).norm().is_orthonormal()

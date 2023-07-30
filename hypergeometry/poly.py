@@ -1,5 +1,6 @@
 
-from typing import Iterable, Union
+from typing import Iterable, Union, Any
+Self=Any
 import numpy as np
 
 from hypergeometry.point import Point
@@ -21,18 +22,18 @@ class Poly:
         return "(" + ",\n".join((f"{p}" for p in self.to_points())) + ")"
     
     @classmethod
-    def from_identity(cls, dim: int) -> 'Poly':
+    def from_identity(cls, dim: int) -> Self:
         """Create a Poly from an identity matrix"""
-        r = Poly(np.identity(dim))
+        r = cls(np.identity(dim))
         r.orthonormal = True
         return r
 
     @classmethod
-    def from_random(cls, dim: int, num: int) -> 'Poly':
+    def from_random(cls, dim: int, num: int) -> Self:
         """Create a Poly from values from a uniform distribution over `[0,1)`."""
-        return Poly(np.random.rand(num, dim))
+        return cls(np.random.rand(num, dim))
     
-    def reset_cache(self) -> 'Poly':
+    def reset_cache(self) -> Self:
         """Remove cached calculations. Use if the matrix is mutated"""
         self.orthonormal = None
         self.transpose = None
@@ -54,17 +55,17 @@ class Poly:
         if self.pseudoinverse is None:
             self.pseudoinverse = np.linalg.pinv(self.p)
         return self.pseudoinverse
-    
-    def clone(self) -> 'Poly':
+
+    def clone(self) -> Self:
         """Returns a deep clone"""
-        r = Poly(self.p)
+        r = self.__class__(self.p)
         r.orthonormal = self.orthonormal
         return r
-    
-    def map(self, lmbd) -> 'Poly':
+     
+    def map(self, lmbd) -> Self:
         """Generate a new Poly object using a lambda function applied to Point objects"""
-        return Poly([lmbd(Point(p)) for p in self.p])
-        
+        return self.__class__([lmbd(Point(p)) for p in self.p])
+         
     def dim(self) -> int:
         """Return the number of dimensions"""
         return self.p.shape[1]
@@ -79,47 +80,57 @@ class Poly:
     def at(self, x: int) -> Point:
         """Return the x'th point as a Point object"""
         return Point(self.p[x])
+        
+    def except_for(self, x: int) -> Self:
+        """Return a Poly that does not contain the x'th point/vector"""
+        return self.__class__(np.concatenate(self.p[:x], self.p[x+1:]))
     
     def to_points(self):
         """Separate into an array of Point objects"""
         return [Point(p) for p in self.p]
     
-    def eq(self, p: 'Poly') -> bool:
+    def eq(self, p: Self) -> bool:
         return (self.p == p.p).all()
     
-    def allclose(self, p: 'Poly') -> bool:
+    def allclose(self, p: Self) -> bool:
         """Return if all values of two Poly objects are sufficiently close"""
         # Prevent broadcasting
         return self.p.shape == p.p.shape and np.allclose(self.p, p.p)
     
-    def add(self, p: Point) -> 'Poly':
+    def add(self, p: Point) -> Self:
         """Add a point/vector to each point/vector in this Poly"""
-        return Poly(self.p + p.c)
+        return self.__class__(self.p + p.c)
     
-    def sub(self, p: Point) -> 'Poly':
+    def sub(self, p: Point) -> Self:
         """Subtract a point/vector from each point/vector in this Poly"""
-        return Poly(self.p - p.c)
+        return self.__class__(self.p - p.c)
+        
+    def scale(self, x: float) -> Self:
+        return self.__class__(self.p * x)
     
     def mean(self) -> Point:
         return Point(np.average(self.p, axis=0))
+        
+    def sum(self) -> Point:
+        return Point(np.sum(self.p, axis=0))
     
-    def norm(self) -> 'Poly':
+    def norm(self) -> Self:
         """Normalise each vector"""
-        return Poly(self.p / np.sqrt(np.square(self.p).sum(axis=1, keepdims=True)))
+        return self.__class__(self.p / np.sqrt(np.square(self.p).sum(axis=1, keepdims=True)))
     
-    def rotate(self, coords: Iterable[int], rad: float) -> 'Poly':
+    def rotate(self, coords: Iterable[int], rad: float) -> Self:
         """Rotate each point. coords is a list of 2 coordinate indices that we rotate"""
         # Can do it faster by directly interacting with the matrix
-        r = Poly([p.rotate(coords, rad) for p in self.to_points()])
+        r = self.__class__([p.rotate(coords, rad) for p in self.to_points()])
         r.orthonormal = self.orthonormal
         return r
 
-    def persp_reduce(self, focd: float) -> 'Poly':
+    def persp_reduce(self, focd: float) -> Self:
         """Project the points onto a subspace where the last coordinate is 0.
         `focd` is the distance of the focal point from the origin along this coordinate.
         """
         a = focd / (focd - self.p[:,-1])
-        return Poly(self.p[:,:-1] * np.expand_dims(a, axis=1))
+        return self.__class__(self.p[:,:-1] * np.expand_dims(a, axis=1))
     
     def is_orthonormal(self, force=False) -> bool:
         """Returns if the collection of vectors is an orthonormal basis (vectors are unit length and pairwise perpendicular)"""
@@ -133,7 +144,7 @@ class Poly:
         self.orthonormal = False
         return False
 
-    def make_basis(self, strict=True) -> 'Poly':
+    def make_basis(self, strict=True) -> Self:
         """Transform the vectors in self into an orthonormal basis (unit-length pairwise perpendicular vectors).
         If strict=False, may leave out vectors if they are not linearly independent.
         """
@@ -150,7 +161,7 @@ class Poly:
                     v = None
             if v is not None:
                 out.append(v.norm())
-        r = Poly(out)
+        r = self.__class__(out)
         assert r.is_orthonormal()
         return r
     
