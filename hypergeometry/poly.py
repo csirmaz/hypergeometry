@@ -83,7 +83,13 @@ class Poly:
         
     def except_for(self, x: int) -> Self:
         """Return a Poly that does not contain the x'th point/vector"""
-        return self.__class__(np.concatenate(self.p[:x], self.p[x+1:]))
+        if x == 0:
+            r = self.p[1:]
+        elif x == self.num() - 1:
+            r = self.p[:x]
+        else:
+            r = np.concatenate((self.p[:x], self.p[x+1:]), axis=0)
+        return self.__class__(r)
     
     def to_points(self):
         """Separate into an array of Point objects"""

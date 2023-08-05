@@ -3,7 +3,7 @@
 
 import numpy as np
 
-from hypergeometry import Point, Poly, Span, Combination, loop_bin, select_of, loop_natural_bin, loop_many_to
+from hypergeometry import Point, Poly, Span, Combination, Parallelotope, Simplex, loop_bin, select_of, loop_natural_bin, loop_many_to
 
 
 def point_test():
@@ -85,10 +85,33 @@ def util_test():
     assert list(loop_natural_bin(2)) == [[0,0], [0,1], [1,1], [1,0]]
     assert list(loop_natural_bin(3)) == [[0,0,0], [0,0,1], [0,1,1], [0,1,0], [1,1,0], [1,1,1], [1,0,1], [1,0,0]]
     assert clonelist(loop_many_to(2, 3)) == [[0,0], [0,1], [0,2], [1,0], [1,1], [1,2], [2,0], [2,1], [2,2]]
-    
+
+def body_test():
+    p = Parallelotope(org=Point([1,1]), basis=Poly([
+        [2,0],
+        [0,2]
+    ]))
+    assert p.distance_on(Span.create_line([0,.1],[1,0])) is None
+    assert p.distance_on(Span.create_line([0,1],[1,0])) == 1
+    assert p.distance_on(Span.create_line([0,1.5],[1,0])) == 1
+    assert p.distance_on(Span.create_line([100,2],[-1,0])) == 97
+    assert p.distance_on(Span.create_line([1,4],[1,-1])) == 1
+    assert p.distance_on(Span.create_line([0,5],[1,-1])) == 2
+    assert p.distance_on(Span.create_line([1,4],[-1,-1])) is None
+
+
+def line_test():
+    # Test line opertions
+    line1 = Span.create_line([1,2], [.2,.3])
+    assert line1.get_line_point(2).allclose(Point([1.4, 2.6]))
+    line2 = Span.create_line([7,9], [.41,.27])
+    r = line1.intersect_lines(line2, test=True)
+    assert line1.get_line_point(r[0]).allclose(line2.get_line_point(r[1]))
 
 point_test()
 poly_test()
 span_test()
 util_test()
+body_test()
+line_test()
 print("OK")

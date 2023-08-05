@@ -1,9 +1,9 @@
 from typing import Iterable
 import numpy as np
 
-from hypergeometry.span import Span
+from hypergeometry.span import Body
 
-class Simplex(Span):
+class Simplex(Body):
     """An n-dimensional simplex defined as n vectors from a
     given point (org):
     X = Org + x0*V0 + ... + xn*Vn

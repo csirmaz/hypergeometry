@@ -1,8 +1,8 @@
 from typing import Iterable
 
-from hypergeometry.span import Span
+from hypergeometry.span import Body
 
-class Parallelotope(Span):
+class Parallelotope(Body):
     """An n-dimensional parallelotope defined as n vectors from a
     given point (org):
     X = Org + x0*V0 + ... + xn*Vn
