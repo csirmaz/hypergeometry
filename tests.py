@@ -86,6 +86,7 @@ def util_test():
     assert list(loop_natural_bin(3)) == [[0,0,0], [0,0,1], [0,1,1], [0,1,0], [1,1,0], [1,1,1], [1,0,1], [1,0,0]]
     assert clonelist(loop_many_to(2, 3)) == [[0,0], [0,1], [0,2], [1,0], [1,1], [1,2], [2,0], [2,1], [2,2]]
 
+
 def body_test():
     p = Parallelotope(org=Point([1,1]), basis=Poly([
         [2,0],
@@ -98,6 +99,26 @@ def body_test():
     assert p.distance_on(Span.create_line([1,4],[1,-1])) == 1
     assert p.distance_on(Span.create_line([0,5],[1,-1])) == 2
     assert p.distance_on(Span.create_line([1,4],[-1,-1])) is None
+    
+    assert p.includes(Point([1,1]))
+    assert p.includes(Point([1.1,1]))
+    assert p.includes(Point([3,3]))
+    assert p.includes(Point([1.1,2.9]))
+    assert not p.includes(Point([0,0]))
+    assert not p.includes(Point([1,.9]))
+    assert not p.includes(Point([1,3.1]))
+    
+    s = Simplex(org=Point([1,1]), basis=Poly([
+        [2,0],
+        [0,2]
+    ]))
+    assert s.includes(Point([1,1]))
+    assert s.includes(Point([1.1,1.1]))
+    assert s.includes(Point([2,2]))
+    assert s.includes(Point([1,3]))
+    assert s.includes(Point([1.1,2.9]))
+    assert not s.includes(Point([1.1,3]))
+    assert not s.includes(Point([2.1,2.1]))
 
 
 def line_test():

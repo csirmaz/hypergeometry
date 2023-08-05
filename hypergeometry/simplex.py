@@ -1,6 +1,7 @@
 from typing import Iterable
 import numpy as np
 
+from hypergeometry.point import Point
 from hypergeometry.span import Body
 
 class Simplex(Body):
@@ -24,4 +25,9 @@ class Simplex(Body):
             basis=Poly(self.basis.p[1:] - self.basis.p[0])
         ))
         return o
-    
+
+    def includes(self, point: Point) -> bool:
+        """Returns whether the point is in the body"""
+        assert self.space_dim() == point.dim()
+        p = self.extract_from(point)
+        return ((p.c >= 0).all() and np.sum(p.c) <= 1)

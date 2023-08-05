@@ -121,3 +121,6 @@ class Body(Span):
             return None
         return alpha
             
+    def includes(self, point: Point) -> bool:
+        """Returnes whether the body includes the point"""
+        raise NotImplementedError("Implement in subclasses")

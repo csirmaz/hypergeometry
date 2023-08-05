@@ -1,5 +1,6 @@
 from typing import Iterable
 
+from hypergeometry.point import Point
 from hypergeometry.span import Body
 
 class Parallelotope(Body):
@@ -27,4 +28,9 @@ class Parallelotope(Body):
             ) for i in range(self.my_dim())
         ])
         
+    def includes(self, point: Point) -> bool:
+        """Returns whether the point is in the body"""
+        assert self.space_dim() == point.dim()
+        p = self.extract_from(point)
+        return ((p.c >= 0).all() and (p.c <= 1).all())
 
