@@ -15,9 +15,10 @@ class Poly:
         self.p = np.array(points)
         self.orthonormal = None  # True of False if known to be orthonormal
         self.independent = None # True or False if known whether the vectors are linearly independent
-        self.transpose = None  # caches matrix to save time
-        self.inverse = None  # caches matrix to save time
-        self.pseudoinverse = None # caches matrix to save time
+        self.transpose = None  # caches np.array to save time
+        self.inverse = None  # caches np.array to save time
+        self.pseudoinverse = None # caches np.array to save time
+        self.square = None # caches Poly to save time
 
     def __str__(self):
         return "(" + ",\n".join((f"{p}" for p in self.to_points())) + ")"
@@ -41,8 +42,17 @@ class Poly:
         self.transpose = None
         self.inverse = None
         self.pseudoinverse = None
+        self.square = None
         return self
     
+    def clone(self) -> Self:
+        """Returns a deep clone"""
+        r = self.__class__(self.p)
+        r.orthonormal = self.orthonormal
+        r.independent = self.independent
+        r.square = self.square
+        return r
+     
     def _get_transpose(self) -> np.ndarray:
         if self.transpose is None:
             self.transpose = self.p.transpose()
@@ -58,12 +68,6 @@ class Poly:
             self.pseudoinverse = np.linalg.pinv(self.p)
         return self.pseudoinverse
 
-    def clone(self) -> Self:
-        """Returns a deep clone"""
-        r = self.__class__(self.p)
-        r.orthonormal = self.orthonormal
-        return r
-     
     def map(self, lmbd) -> Self:
         """Generate a new Poly object using a lambda function applied to Point objects"""
         return self.__class__([lmbd(Point(p)) for p in self.p])
@@ -160,7 +164,7 @@ class Poly:
             if self.orthonormal:
                 self.independent = True
                 return True
-            if self.inverse:
+            if self.inverse is not None:
                 self.independent = True
                 return True
         if self.is_square():
@@ -170,6 +174,9 @@ class Poly:
             except Exception:
                 self.independent = False
             return self.independent
+        if self.num() > self.dim():
+            self.independent = False
+            return False
         try:
             self.make_basis(strict=True)
             self.independent = True
@@ -197,6 +204,25 @@ class Poly:
         r = self.__class__(out)
         assert r.is_orthonormal()
         return r
+
+    def extend_to_square(self, force=False) -> Self:
+        """Ensure that these vectors are linearly independent and return an extended Poly
+        whose vectors are also linearly independent and has a square shape"""
+        if not self.is_independent():
+            raise Exception("extend_to_square: not independent")
+        if self.is_square():
+            return self
+        if self.num() > self.dim():
+            raise Exception("extend_to_square: tall")
+        if not force and self.square is not None:
+            return self.square
+        while True:
+            e = self.__class__.from_random(dim=self.dim(), num=(self.dim() - self.num()))
+            n = self.__class__(np.concatenate((self.p, e.p), axis=0))
+            assert n.is_square()
+            if n.is_independent():
+                self.square = n
+                return n
     
     def apply_to(self, subject: Union['Poly', Point]) -> Union['Poly', Point]:
         """Get the linear combination of vectors in `self` according to the vector(s) in `subject`.

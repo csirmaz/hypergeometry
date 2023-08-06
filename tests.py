@@ -5,6 +5,8 @@ import numpy as np
 
 from hypergeometry import Point, Poly, Span, Combination, Parallelotope, Simplex, loop_bin, select_of, loop_natural_bin, loop_many_to
 
+def close(a, b):
+    return np.allclose(np.array([a]), np.array([b]))
 
 def point_test():
     p1 = Point([0, 0, 1])
@@ -58,10 +60,15 @@ def poly_test():
     assert not Poly([p1, p1, p2]).is_independent()
     assert not Poly([
         Point([0,1,2]),
+        Point([0,2,4])
+    ]).is_independent()
+    assert not Poly([
+        Point([0,1,2]),
         Point([7,6,5]),
         Point([1,1,1])
     ]).is_independent()
-
+    
+    assert p.extend_to_square().is_independent(force=True)
 
 def span_test():
     p = Point([1,1,1])
@@ -86,6 +93,11 @@ def span_test():
 
 
 def util_test():
+    
+    assert close(1, 1)
+    assert not close(1, 1.1)
+    assert close(0, 0)
+    
     def clonelist(iterator):
         return [list(x) for x in iterator]
 
@@ -118,6 +130,14 @@ def body_test():
     assert not p.includes(Point([1,.9]))
     assert not p.includes(Point([1,3.1]))
     
+    assert p.intersect_line(Span.create_line([0,0],[1,1])) == 1
+    assert p.intersect_line(Span.create_line([0,0],[1,0])) is None
+    assert p.intersect_line(Span.create_line([1,0],[0,1])) == 1
+    assert p.intersect_line(Span.create_line([1,10],[0,-1])) == 7
+    p2 = Parallelotope(org=Point([1,1,1]), basis=Poly([[2,0,0],[0,2,0]]))
+    assert p2.intersect_line(Span.create_line([0,0,1],[1,1,0])) == 1
+    assert close(p2.intersect_line(Span.create_line([0,0,0],[1,1,1])), 1)
+    
     s = Simplex(org=Point([1,1]), basis=Poly([
         [2,0],
         [0,2]
@@ -130,6 +150,16 @@ def body_test():
     assert not s.includes(Point([1.1,3]))
     assert not s.includes(Point([2.1,2.1]))
 
+    assert s.intersect_line(Span.create_line([0,0],[1,1])) == 1
+    assert s.intersect_line(Span.create_line([0,0],[1,0])) is None
+    assert s.intersect_line(Span.create_line([1,0],[0,1])) == 1
+    assert s.intersect_line(Span.create_line([1,10],[0,-1])) == 7
+    assert s.intersect_line(Span.create_line([1,3.1],[1,-1])) is None
+    assert s.intersect_line(Span.create_line([1,3],[1,-1])) == 0
+    assert close(s.intersect_line(Span.create_line([2,2],[-1,-1])), 0)
+    assert close(s.intersect_line(Span.create_line([2.1,2.1],[-1,-1])), .1)
+    assert close(s.intersect_line(Span.create_line([2.6,1.6],[-1,-1])), .1)
+
 
 def line_test():
     # Test line opertions
@@ -138,11 +168,13 @@ def line_test():
     line2 = Span.create_line([7,9], [.41,.27])
     r = line1.intersect_lines(line2, test=True)
     assert line1.get_line_point(r[0]).allclose(line2.get_line_point(r[1]))
-
-point_test()
-poly_test()
-span_test()
-util_test()
-body_test()
-line_test()
+    
+# Since some operations involve random values, we repeat the tests
+for i in range(100):
+    point_test()
+    poly_test()
+    span_test()
+    util_test()
+    body_test()
+    line_test()
 print("OK")

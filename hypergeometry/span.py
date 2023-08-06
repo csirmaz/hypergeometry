@@ -50,15 +50,21 @@ class Span:
         """Return the absolute coordinates of the point(s) represented relative to this span"""
         return self.basis.apply_to(subject).add(self.org)
     
+    def apply_to_span(self, subject: Self) -> Self:
+        return self.__class__(
+            org=self.apply_to(subject.org),
+            basis=self.basis.apply_to(subject.basis) # We don't want to shift vectors
+        )
+    
     def extract_from(self, subject: Union['Poly', Point]) -> Union['Poly', Point]:
-        """Represent the point(s) in `subject` relative to this Span"""
+        """Represent the point(s) (not vectors!) in `subject` relative to this Span"""
         return self.basis.extract_from(subject.sub(self.org))
 
     def extract_from_span(self, subject: Self) -> Self:
         """Represent a Span (subject) relative to this Span"""
         return self.__class__(
             org=self.extract_from(subject.org),
-            basis=self.extract_from(subject.basis)
+            basis=self.basis.extract_from(subject.basis) # We don't want to shift vectors
         )
     
     def get_line_point(self, d: float) -> Point:
@@ -76,6 +82,13 @@ class Span:
         return self.__class__(
             org=self.org.persp_reduce(focd),
             basis=self.basis.persp_reduce(focd)
+        )
+    
+    def extend_to_square(self) -> Self:
+        """Return a new Span whose basis is a square extension"""
+        return self.__class__(
+            org=self.org,
+            basis=self.basis.extend_to_square()
         )
     
     def intersect_lines(self, other: Self, test=False):
