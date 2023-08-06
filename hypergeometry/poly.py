@@ -14,9 +14,10 @@ class Poly:
             points = [p.c for p in points]
         self.p = np.array(points)
         self.orthonormal = None  # True of False if known to be orthonormal
-        self.transpose = None  # caches to save time
-        self.inverse = None  # caches to save time
-        self.pseudoinverse = None
+        self.independent = None # True or False if known whether the vectors are linearly independent
+        self.transpose = None  # caches matrix to save time
+        self.inverse = None  # caches matrix to save time
+        self.pseudoinverse = None # caches matrix to save time
 
     def __str__(self):
         return "(" + ",\n".join((f"{p}" for p in self.to_points())) + ")"
@@ -36,6 +37,7 @@ class Poly:
     def reset_cache(self) -> Self:
         """Remove cached calculations. Use if the matrix is mutated"""
         self.orthonormal = None
+        self.independent = None
         self.transpose = None
         self.inverse = None
         self.pseudoinverse = None
@@ -149,6 +151,31 @@ class Poly:
             return True
         self.orthonormal = False
         return False
+    
+    def is_independent(self, force=False) -> bool:
+        """Returns if the rows as vectors are linearly independent"""
+        if self.independent is not None and not force:
+            return self.independent
+        if not force:
+            if self.orthonormal:
+                self.independent = True
+                return True
+            if self.inverse:
+                self.independent = True
+                return True
+        if self.is_square():
+            try:
+                self._get_inverse()
+                self.independent = True
+            except Exception:
+                self.independent = False
+            return self.independent
+        try:
+            self.make_basis(strict=True)
+            self.independent = True
+        except Exception:
+            self.independent = False
+        return self.independent
 
     def make_basis(self, strict=True) -> Self:
         """Transform the vectors in self into an orthonormal basis (unit-length pairwise perpendicular vectors).
@@ -193,20 +220,23 @@ class Poly:
         If `self` is not square, return the coordinates which make up the projection of
         the subject onto the subspace spanned by the basis relative to it. 
         If `self` is orthonormal, use the transpose, which may be more accurate.
-        Otherwise, use the pseudo-inverse of the matrix, which, however, does not
-        warn if the vectors in the basis are not independent.
+        Otherwise, use the pseudo-inverse of the matrix.
         """
         if self.is_square():
             si = self._get_inverse()
             # Throws exception if not invertible
         else:
+            assert self.num() < self.dim() # Guaranteed that the vectors are not independent and so the operation doesn't make sense
             if self.is_orthonormal():
                 si = self._get_transpose()
             else:
+                # Getting the pseudoinverse does not warn if the vectors are not independent
+                if not self.is_independent():
+                    raise Exception("extract_from: not independent")
                 si = self._get_pseudoinverse()
         if isinstance(subject, Point):
             return Point(subject.c @ si)
         if isinstance(subject, Poly):
             return Poly(subject.p @ si)
-        raise Exception("extract_base_from: unknown type")
+        raise Exception("extract_from: unknown type")
         

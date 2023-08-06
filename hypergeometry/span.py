@@ -50,15 +50,22 @@ class Span:
         """Return the absolute coordinates of the point(s) represented relative to this span"""
         return self.basis.apply_to(subject).add(self.org)
     
+    def extract_from(self, subject: Union['Poly', Point]) -> Union['Poly', Point]:
+        """Represent the point(s) in `subject` relative to this Span"""
+        return self.basis.extract_from(subject.sub(self.org))
+
+    def extract_from_span(self, subject: Self) -> Self:
+        """Represent a Span (subject) relative to this Span"""
+        return self.__class__(
+            org=self.extract_from(subject.org),
+            basis=self.extract_from(subject.basis)
+        )
+    
     def get_line_point(self, d: float) -> Point:
         """Convencience function to get a point on the line represented by the Span"""
         # Of course this can be done faster
         return self.apply_to(subject=Point([d]))
 
-    def extract_from(self, subject: Union['Poly', Point]) -> Union['Poly', Point]:
-        """Represent the point(s) in `subject` relative to this span"""
-        return self.basis.extract_from(subject.sub(self.org))
-    
     def rotate(self, coords: Iterable[int], rad: float, around_origin: bool = False) -> Self:
         new_org = self.org
         if around_origin:

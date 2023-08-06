@@ -51,6 +51,16 @@ def poly_test():
     assert Poly([[1,0],[1,1]]).extract_from(Point([10.9, 31.4])).allclose(Point([-20.5, 31.4]))
     assert Poly([[1,0,0],[1,1,0]]).extract_from(Point([10.9, 31.4, 100])).allclose(Point([-20.5, 31.4]))
     assert Poly([[-1,0,0],[0,1,0]]).extract_from(Point([10.9, 31.4, 100])).allclose(Point([-10.9, 31.4]))
+    
+    assert p.is_independent()
+    assert Poly.from_identity(5).is_independent()
+    assert base2.is_independent()
+    assert not Poly([p1, p1, p2]).is_independent()
+    assert not Poly([
+        Point([0,1,2]),
+        Point([7,6,5]),
+        Point([1,1,1])
+    ]).is_independent()
 
 
 def span_test():
