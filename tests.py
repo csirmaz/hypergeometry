@@ -159,6 +159,16 @@ def body_test():
     assert close(s.intersect_line(Span.create_line([2,2],[-1,-1])), 0)
     assert close(s.intersect_line(Span.create_line([2.1,2.1],[-1,-1])), .1)
     assert close(s.intersect_line(Span.create_line([2.6,1.6],[-1,-1])), .1)
+    
+    s2 = Simplex(org=Point([1,2]), basis=Poly([[1,1], [2,0]]))
+    s3 = Simplex(org=Point([1,2]), basis=Poly([[2,0], [1,1]]))
+    for ts in [s2, s3]:
+        assert close(ts.intersect_line(Span.create_line([0,0],[1,1])), 2)
+        assert close(ts.intersect_line(Span.create_line([1,0],[2,2])), 1)
+        assert ts.intersect_line(Span.create_line([1.1,0],[2,2])) is None
+        assert close(ts.intersect_line(Span.create_line([1,4],[1,-1])), 1)
+        assert close(ts.intersect_line(Span.create_line([0,4],[1,-1])), 1.5)
+        assert ts.intersect_line(Span.create_line([1.1,4],[1,-1])) is None
 
 
 def line_test():
