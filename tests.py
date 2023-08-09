@@ -3,7 +3,7 @@
 
 import numpy as np
 
-from hypergeometry import Point, Poly, Span, Combination, Parallelotope, Simplex, loop_bin, select_of, loop_natural_bin, loop_many_to
+from hypergeometry import Point, Poly, Span, Combination, Parallelotope, Simplex, loop_bin, select_of, loop_natural_bin, loop_many_to, Camera
 
 def close(a, b):
     return np.allclose(np.array([a]), np.array([b]))
@@ -180,6 +180,17 @@ def line_test():
     r = line1.intersect_lines_2d(line2, test=True)
     assert line1.get_line_point(r[0]).allclose(line2.get_line_point(r[1]))
     
+    
+def camera_test():
+    space = Span(org=Point([10,10,100]), basis=Poly([[0,0,1], [1,0,0], [0,1,0]]))
+    c = Camera(space=space, focd=7)
+    
+    assert c.ray(Point([0,0])).allclose(Span.create_line([10,17,100], [0,-7,0]))
+    assert c.ray(Point([1,0])).allclose(Span.create_line([10,17,100], [0,-7,1]))
+    assert c.ray(Point([0,1])).allclose(Span.create_line([10,17,100], [1,-7,0]))
+    assert c.ray(Point([2,1])).allclose(Span.create_line([10,17,100], [1,-7,2]))
+    
+    
 # Since some operations involve random values, we repeat the tests
 for i in range(100):
     point_test()
@@ -188,4 +199,5 @@ for i in range(100):
     util_test()
     body_test()
     line_test()
+    camera_test()
 print("OK")

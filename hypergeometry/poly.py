@@ -91,7 +91,7 @@ class Poly:
         """Return a Poly that does not contain the x'th point/vector"""
         if x == 0:
             r = self.p[1:]
-        elif x == self.num() - 1:
+        elif x == -1 or x == self.num() - 1:
             r = self.p[:x]
         else:
             r = np.concatenate((self.p[:x], self.p[x+1:]), axis=0)

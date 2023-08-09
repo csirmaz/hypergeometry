@@ -6,4 +6,4 @@ from hypergeometry.combination import Combination
 from hypergeometry.utils import select_of, loop_bin, loop_many_to, loop_natural_bin
 from hypergeometry.simplex import Simplex
 from hypergeometry.parallelotope import Parallelotope
-
+from hypergeometry.camera import Camera
