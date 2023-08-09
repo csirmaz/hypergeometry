@@ -114,13 +114,13 @@ def body_test():
         [2,0],
         [0,2]
     ]))
-    assert p.distance_on(Span.create_line([0,.1],[1,0])) is None
-    assert p.distance_on(Span.create_line([0,1],[1,0])) == 1
-    assert p.distance_on(Span.create_line([0,1.5],[1,0])) == 1
-    assert p.distance_on(Span.create_line([100,2],[-1,0])) == 97
-    assert p.distance_on(Span.create_line([1,4],[1,-1])) == 1
-    assert p.distance_on(Span.create_line([0,5],[1,-1])) == 2
-    assert p.distance_on(Span.create_line([1,4],[-1,-1])) is None
+    assert p.distance_on_2d(Span.create_line([0,.1],[1,0])) is None
+    assert p.distance_on_2d(Span.create_line([0,1],[1,0])) == 1
+    assert p.distance_on_2d(Span.create_line([0,1.5],[1,0])) == 1
+    assert p.distance_on_2d(Span.create_line([100,2],[-1,0])) == 97
+    assert p.distance_on_2d(Span.create_line([1,4],[1,-1])) == 1
+    assert p.distance_on_2d(Span.create_line([0,5],[1,-1])) == 2
+    assert p.distance_on_2d(Span.create_line([1,4],[-1,-1])) is None
     
     assert p.includes(Point([1,1]))
     assert p.includes(Point([1.1,1]))
@@ -169,6 +169,7 @@ def body_test():
         assert close(ts.intersect_line(Span.create_line([1,4],[1,-1])), 1)
         assert close(ts.intersect_line(Span.create_line([0,4],[1,-1])), 1.5)
         assert ts.intersect_line(Span.create_line([1.1,4],[1,-1])) is None
+        assert close(ts.intersect_line(Span.create_line([3,3],[-1,-1])), .5)
 
 
 def line_test():
@@ -176,7 +177,7 @@ def line_test():
     line1 = Span.create_line([1,2], [.2,.3])
     assert line1.get_line_point(2).allclose(Point([1.4, 2.6]))
     line2 = Span.create_line([7,9], [.41,.27])
-    r = line1.intersect_lines(line2, test=True)
+    r = line1.intersect_lines_2d(line2, test=True)
     assert line1.get_line_point(r[0]).allclose(line2.get_line_point(r[1]))
     
 # Since some operations involve random values, we repeat the tests

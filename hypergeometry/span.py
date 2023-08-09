@@ -91,11 +91,12 @@ class Span:
             basis=self.basis.extend_to_square()
         )
     
-    def intersect_lines(self, other: Self, test=False):
+    def intersect_lines_2d(self, other: Self, test=False):
         """Return [alpha, beta] for two lines represented as
         self =  o1 + alpha * d1 (-inf<alpha<inf)
         other = o2 + beta  * d2 (-inf<beta<inf)
         where o1 + alpha * d1 = o2 + beta * d2.
+        In a 2D space.
         Return [None, None] if the lines are parallel.
         """
         assert self.space_dim() == 2
@@ -114,33 +115,3 @@ class Span:
             assert self.get_line_point(alpha).allclose(other.get_line_point(beta))
         return (alpha, beta)
         
-
-class Body(Span):
-
-    def decompose(self):
-        raise NotImplementedError("Implement in subclasses")
-    
-    def distance_on(self, line: Span) -> float:
-        """Return, in multiples of alpha (where line = o + alpha * d)
-        the distance of this body to o.
-        Returns None if the line misses the body."""
-        assert line.space_dim() == 2
-        assert line.my_dim() == 1
-        assert self.space_dim() == 2
-        if self.my_dim() > 1:
-            d = [x.distance_on(line) for x in self.decompose()]
-            d = [x for x in d if x is not None]
-            if len(d):
-                return min(d)
-            return None
-
-        # 1D body (line segment)
-        alpha, beta = line.intersect_lines(self)
-        # TODO Handle when lines coincide?
-        if beta is None or beta < 0 or beta > 1:
-            return None
-        return alpha
-            
-    def includes(self, point: Point) -> bool:
-        """Returnes whether the body includes the point"""
-        raise NotImplementedError("Implement in subclasses")

@@ -1,8 +1,11 @@
-from typing import Iterable, Union
+from typing import Any, Iterable, Union
+Self=Any
+import numpy as np
 
 from hypergeometry.point import Point
+from hypergeometry.poly import Poly
 from hypergeometry.span import Span
-from hypergeometry.span import Body
+from hypergeometry.body import Body
 
 class Parallelotope(Body):
     """An n-dimensional parallelotope defined as n vectors from a
@@ -10,6 +13,24 @@ class Parallelotope(Body):
     X = Org + x0*V0 + ... + xn*Vn
     where 0 <= xi <= 1
     """
+    
+    @classmethod
+    def create_box(cls, org, sizes) -> Self:
+        """Create a box (hyperrectangle) whose edges are parallel to the axes.
+        If a coordinate in `sizes` is None, it is left out, resulting in a lower-
+        dimensional box.
+        E.g. create_box([0,0,0], [1,None,2]) ->
+            basis= 1,0,0
+                   0,0,2
+        """
+        dim = len(org)
+        assert dim == len(sizes)
+        basis = [
+            [(v if x == ix else 0) for x in range(dim)] 
+            for ix, v in enumerate(sizes)
+            if v is not None
+        ]
+        return cls(org=Point(org), basis=Poly(basis))
     
     def decompose(self) -> Iterable['Parallelotope']:
         """Return the n-1-dimensional faces.
@@ -39,7 +60,7 @@ class Parallelotope(Body):
     def intersect_line(self, line: Span) -> Union[float, None]:
         """Given a line represented as a Span
         (P = L0 + alpha Lv), return min(alpha) for which P falls inside
-        this body.
+        this body, that is, the distance of this body from L0.
         Return None if there is no intersection.
         """
         assert self.space_dim() == line.space_dim()

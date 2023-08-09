@@ -3,7 +3,7 @@ import numpy as np
 
 from hypergeometry.point import Point
 from hypergeometry.span import Span
-from hypergeometry.span import Body
+from hypergeometry.body import Body
 
 class Simplex(Body):
     """An n-dimensional simplex defined as n vectors from a
@@ -37,7 +37,7 @@ class Simplex(Body):
     def intersect_line(self, line: Span) -> Union[float, None]:
         """Given a line represented as a Span
         (P = L0 + alpha Lv), return min(alpha) for which P falls inside
-        this body.
+        this body, that is, the distance of this body from L0.
         Return None if there is no intersection.
         """
         assert self.space_dim() == line.space_dim()
