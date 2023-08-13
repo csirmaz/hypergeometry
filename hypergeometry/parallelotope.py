@@ -66,7 +66,7 @@ class Parallelotope(Body):
         assert self.space_dim() == line.space_dim()
         assert line.my_dim() == 1
         basis_span = self.extend_to_square()
-        line2 = basis_span.extract_from_span(line)
+        line2 = basis_span.extract_from(line)
         all_min = None
         all_max = None
         for i in range(line2.space_dim()):

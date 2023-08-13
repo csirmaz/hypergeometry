@@ -229,9 +229,9 @@ class Poly:
         If `self` is a basis, this converts vector(s) expressed in that basis into absolute coordinates."""
         assert subject.dim() == self.num() # DIM==bNUM
         if isinstance(subject, Point):
-            return Point(subject.c @ self.p) # <(1), DIM> @ <bNUM, bDIM> -> <(1), bDIM>
+            return subject.__class__(subject.c @ self.p) # <(1), DIM> @ <bNUM, bDIM> -> <(1), bDIM>
         if isinstance(subject, Poly):
-            return Poly(subject.p @ self.p) # <NUM, DIM> @ <bNUM, bDIM> -> <NUM, bDIM>
+            return subject.__class__(subject.p @ self.p) # <NUM, DIM> @ <bNUM, bDIM> -> <NUM, bDIM>
         raise Exception("apply_to: unknown type")
     
     def extract_from(self, subject: Union['Poly', Point]) -> Union['Poly', Point]:

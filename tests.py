@@ -190,6 +190,15 @@ def camera_test():
     assert c.ray(Point([0,1])).allclose(Span.create_line([10,17,100], [1,-7,0]))
     assert c.ray(Point([2,1])).allclose(Span.create_line([10,17,100], [1,-7,2]))
     
+    c2 = Camera(space=Span(org=Point([10,10]), basis=Poly([[0,1], [1,0]])), focd=-2)
+    assert c2.focal.allclose(Point([8,10]))
+    assert c2.project(Point([10,20])).allclose(Point([10]))
+    assert c2.project(Point([9,10])).allclose(Point([0]))
+    assert c2.project(Point([11,11])).allclose(Point([.6666666]))
+    assert c2.project(Span(org=Point([10,10]), basis=Poly([[1,1],[1,0],[0,1]]))).allclose(Span(org=Point([0]), basis=Poly([[.666666],[0],[1]])))
+    assert c2.project(Span(org=Point([12,10]), basis=Poly([[1,1],[1,0],[0,1]]))).allclose(Span(org=Point([0]), basis=Poly([[.4],[0],[.5]])))
+    assert c2.project(Span(org=Point([12,12]), basis=Poly([[1,1],[1,0],[0,1]]))).allclose(Span(org=Point([1]), basis=Poly([[.2],[-.2],[.5]])))
+    
     
 # Since some operations involve random values, we repeat the tests
 for i in range(100):

@@ -20,6 +20,11 @@ class Span:
         self.basis = basis
         
     @classmethod
+    def default_span(cls, dim: float) -> Self:
+        """Convenience function to create a Span for the whole space at the origin"""
+        return cls(org=Point.zeros(dim), basis=Poly.from_identity(dim))
+        
+    @classmethod
     def create_line(cls, org: Any, direction: Any) -> Self:
         """Convenience function to create a Span representing a line, e.g.
         create_line([0,0], [1,1])"""
@@ -46,27 +51,24 @@ class Span:
     def allclose(self, o: Self):
         return self.org.allclose(o.org) and self.basis.allclose(o.basis)
     
-    def apply_to(self, subject: Union['Poly', Point]) -> Union['Poly', Point]:
+    def apply_to(self, subject: Union[Point, Poly, 'Span']) -> Any:
         """Return the absolute coordinates of the point(s) represented relative to this span"""
+        if isinstance(subject, Span):
+            return subject.__class__(
+                org=self.apply_to(subject.org),
+                basis=self.basis.apply_to(subject.basis) # We don't want to shift vectors
+            )
         return self.basis.apply_to(subject).add(self.org)
     
-    def apply_to_span(self, subject: Self) -> Self:
-        return self.__class__(
-            org=self.apply_to(subject.org),
-            basis=self.basis.apply_to(subject.basis) # We don't want to shift vectors
-        )
-    
-    def extract_from(self, subject: Union['Poly', Point]) -> Union['Poly', Point]:
+    def extract_from(self, subject: Union[Point, Poly, 'Span']) -> Any:
         """Represent the point(s) (not vectors!) in `subject` relative to this Span"""
-        return self.basis.extract_from(subject.sub(self.org))
-
-    def extract_from_span(self, subject: Self) -> Self:
-        """Represent a Span (subject) relative to this Span"""
-        return self.__class__(
+        if isinstance(subject, Span):
+            return subject.__class__(
             org=self.extract_from(subject.org),
             basis=self.basis.extract_from(subject.basis) # We don't want to shift vectors
         )
-    
+        return self.basis.extract_from(subject.sub(self.org))
+
     def get_line_point(self, d: float) -> Point:
         """Convencience function to get a point on the line represented by the Span"""
         # Of course this can be done faster
@@ -79,9 +81,10 @@ class Span:
         return self.__class__(org=new_org, basis=self.basis.rotate(coords=coords, rad=rad))
     
     def persp_reduce(self, focd: float):
+        org_img = self.org.persp_reduce(focd)
         return self.__class__(
-            org=self.org.persp_reduce(focd),
-            basis=self.basis.persp_reduce(focd)
+            org=org_img,
+            basis=self.basis.add(self.org).persp_reduce(focd).sub(org_img)
         )
     
     def extend_to_square(self) -> Self:
