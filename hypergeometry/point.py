@@ -8,7 +8,7 @@ class Point:
     """Represents a point or vector of arbitrary dimensions"""
     
     def __init__(self, coords):
-        self.c = np.array(coords)
+        self.c = np.array(coords, dtype='float')
     
     def __str__(self):
         return "(" + ", ".join((f"{x:.3f}" for x in self.c)) + ")"
@@ -99,7 +99,7 @@ class Point:
         ca, cb = coords
         s = np.sin(rad * np.pi)
         c = np.cos(rad * np.pi)
-        r = self.clone()
+        r = self.clone().reset_cache()
         r.c[ca] = c * self.c[ca] + s * self.c[cb]
         r.c[cb] = -s * self.c[ca] + c * self.c[cb]
         return r

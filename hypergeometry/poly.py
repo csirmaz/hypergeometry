@@ -12,7 +12,7 @@ class Poly:
         """Accepts a 2D matrix or a list of points"""
         if isinstance(points[0], Point):
             points = [p.c for p in points]
-        self.p = np.array(points)
+        self.p = np.array(points, dtype='float')
         self.orthonormal = None  # True of False if known to be orthonormal
         self.independent = None # True or False if known whether the vectors are linearly independent
         self.transpose = None  # caches np.array to save time
@@ -132,9 +132,14 @@ class Poly:
     
     def rotate(self, coords: Iterable[int], rad: float) -> Self:
         """Rotate each point. coords is a list of 2 coordinate indices that we rotate"""
-        # Can do it faster by directly interacting with the matrix
-        r = self.__class__([p.rotate(coords, rad) for p in self.to_points()])
+        assert len(coords) == 2
+        ca, cb = coords
+        s = np.sin(rad * np.pi)
+        c = np.cos(rad * np.pi)
+        r = self.clone().reset_cache()
         r.orthonormal = self.orthonormal
+        r.p[:,ca] = c * self.p[:,ca] + s * self.p[:,cb]
+        r.p[:,cb] = -s * self.p[:,ca] + c * self.p[:,cb]
         return r
 
     def persp_reduce(self, focd: float) -> Self:

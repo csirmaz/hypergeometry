@@ -6,7 +6,7 @@ import numpy as np
 from hypergeometry import Point, Poly, Span, Combination, Parallelotope, Simplex, loop_bin, select_of, loop_natural_bin, loop_many_to, Camera
 
 def close(a, b):
-    return np.allclose(np.array([a]), np.array([b]))
+    return np.allclose(np.array([a], dtype='float'), np.array([b], dtype='float'))
 
 def point_test():
     p1 = Point([0, 0, 1])
