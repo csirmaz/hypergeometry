@@ -26,7 +26,7 @@ class Poly:
     @classmethod
     def from_identity(cls, dim: int) -> Self:
         """Create a Poly from an identity matrix"""
-        r = cls(np.identity(dim))
+        r = cls(np.identity(dim, dtype='float'))
         r.orthonormal = True
         return r
 

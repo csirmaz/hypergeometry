@@ -16,12 +16,12 @@ class Point:
     @classmethod
     def zeros(cls, dim):
         """Create a Point of `dim` dimensions with all coordinates being 0"""
-        return cls(np.zeros((dim)))
+        return cls(np.zeros((dim), dtype='float'))
     
     @classmethod
     def ones(cls, dim: int) -> Self:
         """Create a Point of `dim` dimensions with all coordinates being 1"""
-        return cls(np.ones((dim)))
+        return cls(np.ones((dim), dtype='float'))
     
     @classmethod
     def all_coords_to(cls, dim: int, v: float) -> Self:
