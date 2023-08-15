@@ -9,8 +9,8 @@ class Body(Span):
         raise NotImplementedError("Implement in subclasses")
     
     def distance_on_2d(self, line: Span) -> float:
-        """Return, in multiples of alpha (where line = o + alpha * d)
-        the distance of this body to o in a 2D space.
+        """Return, in multiples of alpha (where line = O + alpha * D)
+        the distance of this body to O in a 2D space.
         Returns None if the line misses the body."""
         assert line.space_dim() == 2
         assert line.my_dim() == 1

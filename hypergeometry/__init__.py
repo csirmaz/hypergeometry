@@ -7,3 +7,4 @@ from hypergeometry.utils import select_of, loop_bin, loop_many_to, loop_natural_
 from hypergeometry.simplex import Simplex
 from hypergeometry.parallelotope import Parallelotope
 from hypergeometry.camera import Camera
+from hypergeometry.objectface import ObjectFace
