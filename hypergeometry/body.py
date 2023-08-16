@@ -32,3 +32,17 @@ class Body(Span):
     def includes(self, point: Point) -> bool:
         """Returnes whether the body includes the point"""
         raise NotImplementedError("Implement in subclasses")
+    
+    def decompose_with_normals(self):
+        """Return the faces with their normals pointing outwards from the body"""
+        mid = self.midpoint()
+        for face in self.decompose():
+            normal = face.basis.extend_to_square().at(-1).norm()
+            facemid = face.midpoint()
+            m = facemid.sub(mid).dot(normal)
+            if m < 0:
+                normal = normal.scale(-1)
+            elif m == 0:
+                raise Exception("normal perpendicular to vector to midpoint?")
+            yield face, normal
+            

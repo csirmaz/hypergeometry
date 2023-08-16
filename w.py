@@ -1,8 +1,9 @@
 
 from PIL import Image
 import numpy as np
+import time
 
-from hypergeometry import Point, Poly, Span, Combination, Parallelotope, Simplex, Camera, ObjectFace
+from hypergeometry import Point, Poly, Span, Combination, Parallelotope, Simplex, Camera, ObjectFace, Light
 
 box = Parallelotope.create_box
 
@@ -10,7 +11,8 @@ box = Parallelotope.create_box
 
 OBJECTS = []
 OBJECTS.extend(ObjectFace.from_body(
-    box([2,2,2,2], [1,1,1,1]).rotate([0,2], .9)
+    box([1,1,1,1], [1,1,1,1]).rotate([0,2], .9),
+    random_color=True
 ))
 
 CAMERAS = [
@@ -18,31 +20,36 @@ CAMERAS = [
     Camera(space=Span.default_span(4), focd=-10), # 4D -> 3D
 ]
 
+LIGHTS = [
+    Light(Point([0,-5,0,-5]))
+]
+
 RANGES = [ # coordinates
     3, # 2D [-a..a] x [-a..a]
-    5  # 3D [0..a]
+    4  # 3D [0..a]
 ]
 
 STEPS = [
-    .005, # 2D
-    .05   # 3D
+    .02, # 2D
+    .1   # 3D
 ]
 
-o = OBJECTS[0].body
-print(o)
-for camera in CAMERAS[::-1]:
-    o = camera.project(o)
-    print(o)
+# o = OBJECTS[0].body
+# print(o)
+# for camera in CAMERAS[::-1]:
+#     o = camera.project(o)
+#     print(o)
 
 
 IMAGE_SIZE = int(RANGES[0] / STEPS[0] * 2)
 MAX_PICZ = int(RANGES[1] / STEPS[1])
+print(f"image size: {IMAGE_SIZE} max picz: {MAX_PICZ}")
 img_arr = np.zeros((IMAGE_SIZE, IMAGE_SIZE, 3))
 
+# IDEA: Project to 2D and ignore empty regions
+
+start_time = time.time()
 percent_done = 0       
-# IDEA: start with the previous picz value
-# TODO picz = 0 # We retain this value to start the search at the same place for the next 2D pixel
-# IDEA: ignore empty regions
 for picy in range(IMAGE_SIZE): # pixel
     for picx in range(IMAGE_SIZE): # pixel
         im_point_2d = Point([picx*STEPS[0]-RANGES[0], picy*STEPS[0]-RANGES[0]]) # image point on 2D canvas
@@ -64,13 +71,16 @@ for picy in range(IMAGE_SIZE): # pixel
                 # We want the first ray that intersects with an object (minimum picz ~ dist_3d)
                 break
         if min_obj is not None:
-            # TODO We have min_int_o, min_int_x, z
-            img_arr[picy,picx,:] = [1,1,1]
+            # We have min_obj, min_dist_4d, picz
+            intersect_point_4d = ray_4d.get_line_point(min_dist_4d)
+            img_arr[picy,picx,:] = min_obj.get_color(point=intersect_point_4d, lights=LIGHTS, eye=CAMERAS[1].focal)
         
-    percent = int(picy / IMAGE_SIZE * 100)
+    percent = int(picy / IMAGE_SIZE * 100 + .5)
     if percent > percent_done:
         percent_done = percent
-        print(f"{percent}% done")
+        spent_time = time.time() - start_time
+        remaining_time = spent_time / percent_done * (100 - percent_done)
+        print(f"{percent}% {remaining_time} s remaining")
             
 # Save the image
 img_max = np.max(img_arr, axis=(0,1))

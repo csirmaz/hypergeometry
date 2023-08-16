@@ -27,6 +27,9 @@ class Simplex(Body):
         ))
         return o
 
+    def midpoint(self) -> Point:
+        return self.org.add( self.basis.sum().scale(1./(self.my_dim() + 1.)) )
+        
     def includes(self, point: Point) -> bool:
         """Returns whether the point is in the body"""
         # TODO Doesn't work on projected bodies where NUM>DIM (use or(decompose))

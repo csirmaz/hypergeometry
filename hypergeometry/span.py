@@ -71,8 +71,8 @@ class Span:
 
     def get_line_point(self, d: float) -> Point:
         """Convencience function to get a point on the line represented by the Span"""
-        # Of course this can be done faster
-        return self.apply_to(subject=Point([d]))
+        assert self.my_dim() == 1
+        return Point(self.org.c + self.basis.p[0] * d)
 
     def rotate(self, coords: Iterable[int], rad: float, around_origin: bool = False) -> Self:
         new_org = self.org

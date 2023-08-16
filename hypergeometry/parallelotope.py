@@ -49,6 +49,9 @@ class Parallelotope(Body):
                 basis=inv.except_for(i)
             ) for i in range(self.my_dim())
         ])
+            
+    def midpoint(self) -> Point:
+        return self.org.add( self.basis.sum().scale(.5) )
         
     def includes(self, point: Point) -> bool:
         """Returns whether the point is in the body"""
