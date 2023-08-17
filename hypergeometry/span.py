@@ -48,6 +48,10 @@ class Span:
     def as_combination(self) -> Combination:
         return Combination(np.concatenate((np.zeros((1, self.space_dim())), self.basis.p), axis=0) + self.org.c)
     
+    def subset(self, indices: Iterable[int]):
+        """Return a new span that has the vectors of this one at indices"""
+        return self.__class__(org=self.org, basis=self.basis.subset(indices))
+    
     def allclose(self, o: Self):
         return self.org.allclose(o.org) and self.basis.allclose(o.basis)
     

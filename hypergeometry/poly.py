@@ -60,7 +60,12 @@ class Poly:
     
     def _get_inverse(self) -> np.ndarray:
         if self.inverse is None:
-            self.inverse = np.linalg.inv(self.p)
+            try:
+                self.inverse = np.linalg.inv(self.p)
+            except np.linalg.LinAlgError:
+                self.inverse = False
+        if self.inverse is False:
+            raise NotIndependentError()
         return self.inverse
 
     def _get_pseudoinverse(self) -> np.ndarray:
@@ -96,6 +101,10 @@ class Poly:
         else:
             r = np.concatenate((self.p[:x], self.p[x+1:]), axis=0)
         return self.__class__(r)
+    
+    def subset(self, indices: Iterable[int]) -> Self:
+        """Return a Poly formed from the vectors at the given indices"""
+        return self.__class__(self.p[indices])
     
     def to_points(self):
         """Separate into an array of Point objects"""
@@ -176,7 +185,7 @@ class Poly:
             try:
                 self._get_inverse()
                 self.independent = True
-            except Exception:
+            except NotIndependentError:
                 self.independent = False
             return self.independent
         if self.num() > self.dim():
@@ -185,7 +194,7 @@ class Poly:
         try:
             self.make_basis(strict=True)
             self.independent = True
-        except Exception:
+        except NotIndependentError:
             self.independent = False
         return self.independent
 
@@ -202,7 +211,7 @@ class Poly:
                 # print(f"i={i} j={j} v_org={self.at(i)} out[j]={out[j]} d={d} v={v} {v.is_zero()}")
                 if v.is_zero():
                     if strict:
-                        raise Exception("make_basis: not independent")
+                        raise NotIndependentError("make_basis: not independent")
                     v = None
             if v is not None:
                 out.append(v.norm())
@@ -214,11 +223,11 @@ class Poly:
         """Ensure that these vectors are linearly independent and return an extended Poly
         whose vectors are also linearly independent and has a square shape"""
         if not self.is_independent():
-            raise Exception("extend_to_square: not independent")
+            raise NotIndependentError("extend_to_square: not independent")
         if self.is_square():
             return self
         if self.num() > self.dim():
-            raise Exception("extend_to_square: tall")
+            raise Exception("extend_to_square: tall matrix")
         if not force and self.square is not None:
             return self.square
         while True:
@@ -271,3 +280,6 @@ class Poly:
             return Poly(subject.p @ si)
         raise Exception("extract_from: unknown type")
         
+
+class NotIndependentError(Exception):
+    pass

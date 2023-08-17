@@ -8,6 +8,25 @@ class Body(Span):
     def decompose(self):
         raise NotImplementedError("Implement in subclasses")
     
+    def midpoint(self) -> Point:
+        raise NotImplementedError("Implement in subclasses")
+
+    def includes(self, point: Point) -> bool:
+        """Returnes whether the body includes the point"""
+        raise NotImplementedError("Implement in subclasses")
+    
+    def includes_2d(self, point: Point) -> bool:
+        """Returns whether the 2D projection of the body contains the point"""
+        assert self.space_dim() == 2
+        assert point.dim() == 2
+        for i in range(self.my_dim()):
+            for j in range(i+1, self.my_dim()):
+                triangle = self.subset([i,j])
+                if triangle.basis.is_independent():
+                    if triangle.includes(point):
+                        return True
+        return False
+
     def distance_on_2d(self, line: Span) -> float:
         """Return, in multiples of alpha (where line = O + alpha * D)
         the distance of this body to O in a 2D space.
@@ -29,10 +48,6 @@ class Body(Span):
             return None
         return alpha
             
-    def includes(self, point: Point) -> bool:
-        """Returnes whether the body includes the point"""
-        raise NotImplementedError("Implement in subclasses")
-    
     def decompose_with_normals(self):
         """Return the faces with their normals pointing outwards from the body"""
         mid = self.midpoint()

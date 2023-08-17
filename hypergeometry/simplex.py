@@ -32,7 +32,8 @@ class Simplex(Body):
         
     def includes(self, point: Point) -> bool:
         """Returns whether the point is in the body"""
-        # TODO Doesn't work on projected bodies where NUM>DIM (use or(decompose))
+        # Will throw an exception if the body is degenerate
+        # (vectors in basis are not independent)
         assert self.space_dim() == point.dim()
         p = self.extract_from(point)
         return ((p.c >= 0).all() and np.sum(p.c) <= 1)

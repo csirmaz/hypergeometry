@@ -20,8 +20,7 @@ class Camera:
         self.image_dim = self.image_pane.my_dim()
         assert self.image_dim == space.my_dim() - 1
         self.focal = space.apply_to(Point([0] * self.image_dim + [focd])) # focal point
-        
-        
+
     def ray(self, p: Point) -> Span:
         """Return a line (Span) from the focal point towards point p in the image pane"""
         assert p.dim() == self.image_dim
@@ -34,7 +33,6 @@ class Camera:
         if isinstance(p, Point) or isinstance(p, Poly) or isinstance(p, Span):
             p = self.space.extract_from(p)
             return p.persp_reduce(self.focd)
-        else:
-            raise Exception("unknown type")
+        raise Exception("unknown type")
     
     
