@@ -1,4 +1,6 @@
 
+EPSILON = 1e-7
+
 
 def select_of(num: int, max: int):
     """Yield all sets of num numbers from [0,max) without replacement.

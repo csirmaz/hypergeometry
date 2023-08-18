@@ -1,11 +1,12 @@
 from typing import Any, Iterable, Union
 Self=Any
-import numpy as np
 
+from hypergeometry.utils import EPSILON
 from hypergeometry.point import Point
 from hypergeometry.poly import Poly
 from hypergeometry.span import Span
 from hypergeometry.body import Body
+
 
 class Parallelotope(Body):
     """An n-dimensional parallelotope defined as n vectors from a
@@ -55,11 +56,11 @@ class Parallelotope(Body):
         
     def includes(self, point: Point) -> bool:
         """Returns whether the point is in the body"""
-        # Will throw an exception if the body is degenerate
-        # (vectors in basis are not independent)
+        # Can only be used if the body is NOT degenerate
+        # (vectors in basis are independent)
         assert self.space_dim() == point.dim()
         p = self.extract_from(point)
-        return ((p.c >= 0).all() and (p.c <= 1).all())
+        return ((p.c >= -EPSILON).all() and (p.c <= 1 + EPSILON).all())
     
     def intersect_line(self, line: Span) -> Union[float, None]:
         """Given a line represented as a Span
@@ -69,24 +70,48 @@ class Parallelotope(Body):
         """
         assert self.space_dim() == line.space_dim()
         assert line.my_dim() == 1
+        my_dims = self.my_dim()
         basis_span = self.extend_to_square()
+        print(f"  basis_span={basis_span}") # DEBUG
         line2 = basis_span.extract_from(line)
+        print(f"  line2={line2}") # DEBUG
         all_min = None
         all_max = None
         for i in range(line2.space_dim()):
             org = line2.org.c[i]
             vec = line2.basis.p[0, i]
-            # We need 0 <= org + alpha * vec <= 1 for all coordinates
+            # We need 0-eps <= org + alpha * vec <= 1+eps for all original coordinates
+            # and 0-eps <= org + alpha * vec <= 0+eps for additional coordinates
+            #
+            # 0-eps <= org + alpha * vec <= M+eps
+            # 0-eps-org <= alpha*vec <= M+eps-org
+            # IF vec == 0:
+            #     -eps-org <= 0 <= M+eps-org
+            #     Miss if -eps-org > 0 OR 0 > M+eps-org
+            #          if -eps > org OR org > M+eps
+            # IF vec > 0:
+            #     (-eps-org)/vec <= alpha   (this is the minimum permissible value)
+            #     alpha <= (M+eps-org)/vec  (this is the maximum permissible value)
+            # IF vec < 0:
+            #     (-eps-org)/vec >= alpha   (this is the maximum permissible value)
+            #     alpha >= (M+eps-org)      (this is the minimum permissible value)
+
+            if i < my_dims: # an original dimension
+                mparam = 1.
+            else:
+                mparam = 0.
+            
             if vec == 0:
-                if org < 0 or org > 1:
+                if org < -EPSILON or org > 1 + EPSILON:
                     return None
             else:
-                this_min = -org/vec
-                this_max = (1-org)/vec
+                this_min = (-EPSILON-org)/vec
+                this_max = (mparam+EPSILON-org)/vec
                 if vec < 0:
                     this_min, this_max = this_max, this_min
                 if all_min is None or all_min < this_min: all_min = this_min
                 if all_max is None or all_max > this_max: all_max = this_max
+
         assert all_min is not None
         if all_min > all_max: return None
         return all_min

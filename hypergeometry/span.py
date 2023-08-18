@@ -1,11 +1,13 @@
 
 from typing import Union, Iterable, Any
-Self=Any
+Self = Any
 import numpy as np
 
+from hypergeometry.utils import select_of
 from hypergeometry.point import Point
 from hypergeometry.poly import Poly
 from hypergeometry.combination import Combination
+
 
 class Span:
     """This class represents a subspace as a set of points that are spanned by a set of vectors (basis)
@@ -18,6 +20,9 @@ class Span:
         assert org.dim() == basis.dim()
         self.org = org
         self.basis = basis
+        self.sub_spans = {}  # Cache of sub-spans
+        # Sub-spans are spans formed of a subset of the vectors of this span.
+        # We cache them to make them persistent for operations like extendind to square etc.
         
     @classmethod
     def default_span(cls, dim: float) -> Self:
@@ -48,10 +53,18 @@ class Span:
     def as_combination(self) -> Combination:
         return Combination(np.concatenate((np.zeros((1, self.space_dim())), self.basis.p), axis=0) + self.org.c)
     
-    def subset(self, indices: Iterable[int]):
-        """Return a new span that has the vectors of this one at indices"""
-        return self.__class__(org=self.org, basis=self.basis.subset(indices))
-    
+    def get_subspans(self, dim: int) -> Iterable[Self]:
+        """Return a list of subspans of the given dimension.
+        Sub-spans are spans formed of a subset of the vectors of this span."""
+        if dim in self.sub_spans:
+            return self.sub_spans[dim]
+        assert dim <= self.my_dim()
+        self.sub_spans[dim] = [
+            self.__class__(org=self.org, basis=self.basis.subset(indices))
+            for indices in select_of(num=dim, max=self.my_dim())
+        ]
+        return self.sub_spans[dim]
+
     def allclose(self, o: Self):
         return self.org.allclose(o.org) and self.basis.allclose(o.basis)
     
