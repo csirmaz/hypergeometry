@@ -34,10 +34,8 @@ STEPS = [
     .05   # 3D
 ]
 
-###
-OBJECTS = [OBJECTS[0]]
-###
-
+# DEBUG
+OBJECTS = [OBJECTS[4]]
 
 # Span/Body objects (so we don't have to calculate normals)
 OBJECTS_PROJ = {x:[] for x in range(OBJECTS[0].body.space_dim())}
@@ -53,6 +51,21 @@ IMAGE_SIZE = int(RANGES[0] / STEPS[0] * 2)
 MAX_PICZ = int(RANGES[1] / STEPS[1])
 print(f"image size: {IMAGE_SIZE} max picz: {MAX_PICZ}")
 img_arr = np.zeros((IMAGE_SIZE, IMAGE_SIZE, 3))
+
+def coord2pix(c):
+    return int((c+RANGES[0])/STEPS[0]+.5)
+
+def plot(x, y, c):
+    img_arr[coord2pix(y), coord2pix(x), :] = c
+
+def bigdot(cx, cy, c):
+    x = coord2pix(cx)
+    y = coord2pix(cy)
+    img_arr[y,x,:] = c
+    img_arr[y+1,x,:] = c
+    img_arr[y-1,x,:] = c
+    img_arr[y,x+1,:] = c
+    img_arr[y,x-1,:] = c
 
 start_time = time.time()
 percent_done = 0       
@@ -70,7 +83,12 @@ for picy in range(IMAGE_SIZE): # pixel
         if len(relevant_obj_ix2) == 0:
             continue
 
-        img_arr[picy,picx,0] = 1 # DEBUG
+        img_arr[picy,picx,:] = [ # DEBUG
+            1 if 4 in relevant_obj_ix2 else .3,
+            .3,
+            .3,
+        ]
+        continue # DEBUG
 
         # Use ray tracing
         ray_3d = CAMERAS[0].ray(im_point_2d)
@@ -81,23 +99,26 @@ for picy in range(IMAGE_SIZE): # pixel
         min_dist3 = None
         for ix in relevant_obj_ix2:
             d = OBJECTS_PROJ[3][ix].intersect_line_sub(ray_3d)
-            if d is None:
-                # TODO Why?
-                print("*")
+            #print(f"ray_3d={ray_3d} ix={ix} o={OBJECTS_PROJ[3][ix]} d={d}") # DEBUG
+            ##assert d is not None
+            if d is None: # DEBUG
+                print("**")
+                print(f"ix={ix} p2={im_point_2d} o2={OBJECTS_PROJ[2][ix]}")
+                print(f"r3={ray_3d} o3={OBJECTS_PROJ[3][ix]}")
                 continue
             if min_dist3 is None or d < min_dist3:
                 min_dist3 = d
                 min_obj_ix3 = ix
 
-        if min_obj_ix3 is None:
-            # TODO Why?
-            print("!")
+        #assert min_obj_ix3 is not None
+        if min_obj_ix3 is None: # DEBUG
+            print("!!")
+            img_arr[picy,picx,:] = [1,0,0]
             continue
-
         min_obj = OBJECTS[min_obj_ix3]
         im_point_3d = ray_3d.get_line_point(min_dist3)
         ray_4d = CAMERAS[1].ray(im_point_3d)
-        dist_4d = min_obj.body.intersect_line(ray_4d)
+        dist_4d = min_obj.body.intersect_line_sub(ray_4d)
         intersect_point_4d = ray_4d.get_line_point(dist_4d)
         img_arr[picy,picx,:] = min_obj.get_color(point=intersect_point_4d, lights=LIGHTS, eye=CAMERAS[1].focal)
 
@@ -107,9 +128,17 @@ for picy in range(IMAGE_SIZE): # pixel
         spent_time = time.time() - start_time
         remaining_time = spent_time / percent_done * (100 - percent_done)
         print(f"{percent}% {remaining_time} s remaining")
-            
+
+# DEBUG
+o = OBJECTS_PROJ[2][0]
+for p in o.generate_grid(10):
+    plot(p.c[0], p.c[1], [1,1,1])
+pp = o.org.add(o.basis.at(0))
+bigdot(pp.c[0], pp.c[1], [0,1,0])
+
 # Save the image
-img_max = np.max(img_arr, axis=(0,1))
+# img_max = np.max(img_arr, axis=(0,1)) + 1e-7 # per channel
+img_max = np.max(img_arr) + 1e-7 # overall max
 img_data = (img_arr / img_max * 255.).astype('B')
 img = Image.fromarray(img_data, mode="RGB") # https://pillow.readthedocs.io/en/stable/handbook/concepts.html#concept-modes
 img.save('image.png')

@@ -16,7 +16,7 @@ class Camera:
         assert space.basis.is_orthonormal()
         self.space = space
         self.focd = focd
-        self.image_pane = Span(org=space.org, basis=space.basis.except_for(-1))
+        self.image_pane = Span(org=space.org, basis=space.basis.pop())
         self.image_dim = self.image_pane.my_dim()
         assert self.image_dim == space.my_dim() - 1
         self.focal = space.apply_to(Point([0] * self.image_dim + [focd])) # focal point

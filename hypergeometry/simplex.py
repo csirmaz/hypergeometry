@@ -1,8 +1,9 @@
 from typing import Iterable, Union
 import numpy as np
 
-from hypergeometry.utils import EPSILON
+from hypergeometry.utils import EPSILON, select_of
 from hypergeometry.point import Point
+from hypergeometry.poly import Poly
 from hypergeometry.span import Span
 from hypergeometry.body import Body
 
@@ -16,17 +17,20 @@ class Simplex(Body):
     def decompose(self) -> Iterable['Simplex']:
         """Return the n-1-dimensional faces
         Note: we don't worry about the orientation"""
+        if self.decomposed is not None:
+            return self.decomposed
         o = [
             Simplex(
                 org=self.org,
-                basis=self.basis.except_for(i)
-            ) for i in range(self.my_dim())
+                basis=self.basis.subset(indices)
+            ) for indices in select_of(num=self.my_dim()-1, max=self.my_dim())
         ]
         o.append(Simplex(
             org=self.org.add(self.basis.at(0)),
             basis=Poly(self.basis.p[1:] - self.basis.p[0])
         ))
-        return o
+        self.decomposed = o
+        return self.decomposed
 
     def midpoint(self) -> Point:
         return self.org.add( self.basis.sum().scale(1./(self.my_dim() + 1.)) )
@@ -47,6 +51,7 @@ class Simplex(Body):
         """
         assert self.space_dim() == line.space_dim()
         assert line.my_dim() == 1
+        my_dims = self.my_dim()
         basis_span = self.extend_to_square()
         line2 = basis_span.extract_from(line)
         all_min = None

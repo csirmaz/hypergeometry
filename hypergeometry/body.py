@@ -11,7 +11,18 @@ class Body(Span):
 
     def decompose(self):
         raise NotImplementedError("Implement in subclasses")
-    
+
+    def decompose_to(self, dim: int):
+        """Return dim-dimensional faces of the body"""
+        assert dim < self.my_dim()
+        if dim == self.my_dim() - 1:
+            for face in self.decompose():
+                yield face
+        else:
+            for h in self.decompose_to(dim + 1):
+                for face in h.decompose():
+                    yield face
+
     def midpoint(self) -> Point:
         raise NotImplementedError("Implement in subclasses")
 
@@ -22,9 +33,9 @@ class Body(Span):
     def includes_sub(self, point: Point) -> bool:
         """Returns whether the projection of the body contains the point"""
         assert self.space_dim() == point.dim()
-        for subspan in self.get_subspans(dim=self.space_dim()):
-            if subspan.basis.is_independent():
-                if subspan.includes(point):
+        for face in self.decompose_to(self.space_dim()):
+            if face.basis.is_independent():
+                if face.includes(point):
                     return True
         return False
 
@@ -34,14 +45,18 @@ class Body(Span):
         Returns None if the line misses the body."""
         assert line.my_dim() == 1
         assert line.space_dim() == self.space_dim()
-        # TODO It's possible that we want to do something with nonindependent (degenerate) subsets
-        min_f = None
-        for subspan in self.get_subspans(dim=self.space_dim()):
-            if subspan.basis.is_independent():
-                f = subspan.intersect_line(line)
-                if f is not None:
-                    if min_f is None or f < min_f: min_f = f
-        return min_f
+        # We can only calculate intersections for non-degenerate spans
+        # so we try all sub-spans of all dimensions
+        for target_dim in range(self.my_dim(), 0, -1):
+            min_f = None
+            for subspan in self.get_subspans(dim=target_dim): # TODO PROB USE DECOMOPOSE_TO & REMOVE SUBSPANS
+                if subspan.basis.is_independent():
+                    f = subspan.intersect_line(line)
+                    if f is not None:
+                        if min_f is None or f < min_f: min_f = f
+            if min_f is not None:
+                return min_f
+        return None
 
     def distance_on_2d(self, line: Span) -> float:
         """Return, in multiples of alpha (where line = O + alpha * D)

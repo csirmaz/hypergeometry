@@ -92,15 +92,9 @@ class Poly:
         """Return the x'th point as a Point object"""
         return Point(self.p[x])
         
-    def except_for(self, x: int) -> Self:
-        """Return a Poly that does not contain the x'th point/vector"""
-        if x == 0:
-            r = self.p[1:]
-        elif x == -1 or x == self.num() - 1:
-            r = self.p[:x]
-        else:
-            r = np.concatenate((self.p[:x], self.p[x+1:]), axis=0)
-        return self.__class__(r)
+    def pop(self) -> Self:
+        """Return a Poly that does not contain the last point/vector"""
+        return self.__class__(self.p[:-1])
     
     def subset(self, indices: Iterable[int]) -> Self:
         """Return a Poly formed from the vectors at the given indices"""

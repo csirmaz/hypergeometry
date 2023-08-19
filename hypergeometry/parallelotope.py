@@ -1,7 +1,7 @@
 from typing import Any, Iterable, Union
 Self=Any
 
-from hypergeometry.utils import EPSILON
+from hypergeometry.utils import EPSILON, select_of, loop_many_to
 from hypergeometry.point import Point
 from hypergeometry.poly import Poly
 from hypergeometry.span import Span
@@ -14,7 +14,7 @@ class Parallelotope(Body):
     X = Org + x0*V0 + ... + xn*Vn
     where 0 <= xi <= 1
     """
-    
+
     @classmethod
     def create_box(cls, org, sizes) -> Self:
         """Create a box (hyperrectangle) whose edges are parallel to the axes.
@@ -33,23 +33,27 @@ class Parallelotope(Body):
         ]
         return cls(org=Point(org), basis=Poly(basis))
     
-    def decompose(self) -> Iterable['Parallelotope']:
+    def decompose(self) -> Iterable[Self]:
         """Return the n-1-dimensional faces.
         We don't worry about the orientation.
         """
+        if self.decomposed is not None:
+            return self.decomposed
         inv = self.basis.scale(-1)
         org2 = self.org.add(self.basis.sum())
-        return ([
+        o = ([
             Parallelotope(
                 org=self.org,
-                basis=self.basis.except_for(i)
-            ) for i in range(self.my_dim())
+                basis=self.basis.subset(indices)
+            ) for indices in select_of(num=self.my_dim()-1, max=self.my_dim())
         ] + [
             Parallelotope(
                 org=org2,
-                basis=inv.except_for(i)
-            ) for i in range(self.my_dim())
+                basis=inv.subset(indices)
+            ) for indices in select_of(num=self.my_dim()-1, max=self.my_dim())
         ])
+        self.decomposed = o
+        return self.decomposed
             
     def midpoint(self) -> Point:
         return self.org.add( self.basis.sum().scale(.5) )
@@ -72,9 +76,9 @@ class Parallelotope(Body):
         assert line.my_dim() == 1
         my_dims = self.my_dim()
         basis_span = self.extend_to_square()
-        print(f"  basis_span={basis_span}") # DEBUG
+        #print(f"  basis_span={basis_span}") # DEBUG
         line2 = basis_span.extract_from(line)
-        print(f"  line2={line2}") # DEBUG
+        #print(f"  line2={line2}") # DEBUG
         all_min = None
         all_max = None
         for i in range(line2.space_dim()):
@@ -115,3 +119,8 @@ class Parallelotope(Body):
         assert all_min is not None
         if all_min > all_max: return None
         return all_min
+
+    def generate_grid(self, density: int) -> Iterable[Point]:
+        """Yield a series of points inside the body"""
+        for i in loop_many_to(num=self.my_dim(), max_=density, scaled=True):
+            yield self.apply_to(Point(i))

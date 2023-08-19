@@ -31,11 +31,9 @@ class Point:
     @classmethod
     def generate_grid(cls, dim: int, steps: int) -> Self:
         """Yield all points in the [0,1]**dim region (inclusive) in a grid
-        that has `steps+1` points along the axes.
-        WARNING Mutates and yields the same object"""
-        r = cls.zeros(dim)
-        for r_ in loop_many_to(num=dim, max=steps, arr=r.c, scaled=True):
-            yield r
+        that has `steps+1` points along the axes."""
+        for r_ in loop_many_to(num=dim, max_=steps, scaled=True):
+            yield cls(r_)
 
     def reset_cache(self) -> Self:
         return self

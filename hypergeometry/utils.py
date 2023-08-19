@@ -35,22 +35,20 @@ def loop_bin(num: int):
             break
 
 
-def loop_many_to(num: int, max: int, arr=None, scaled=False):
+def loop_many_to(num: int, max_: int, scaled=False):
     """Yield list of `num` length where each element loops from 0 to `max-1`.
-    WARNING Mutates and yields the same list.
-    If `arr` is specified, it mutates that.
     If `scaled`, scales the results so the maximum becomes 1.
     """
-    r = arr
-    if r is None:
-        r = [0 for i in range(num)]
-    max_value = 1. if scaled else max - 1
-    step = 1. / max if scaled else 1
+    r = [0 for i in range(num)]
+    max_value = max_ - 1
     while True:
-        yield r
+        if scaled:
+            yield [x/(max_-1) for x in r]
+        else:
+            yield list(r)
         for i in range(num-1, -1, -1):
             if r[i] < max_value:
-                r[i] += step
+                r[i] += 1
                 for j in range(i+1, num, 1):
                     r[j] = 0
                 break

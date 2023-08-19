@@ -20,6 +20,7 @@ class Span:
         assert org.dim() == basis.dim()
         self.org = org
         self.basis = basis
+        self.decomposed = None # Cache of D-1-dimensional faces
         self.sub_spans = {}  # Cache of sub-spans
         # Sub-spans are spans formed of a subset of the vectors of this span.
         # We cache them to make them persistent for operations like extendind to square etc.
