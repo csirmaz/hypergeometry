@@ -12,7 +12,10 @@ class Parallelotope(Body):
     """An n-dimensional parallelotope defined as n vectors from a
     given point (org):
     X = Org + x0*V0 + ... + xn*Vn
-    where 0 <= xi <= 1
+    where 0 <= xi <= 1.
+
+    Note that the perspective projection of a parallelotope is not a parallelotope
+    (while this applies to simplices).
     """
 
     @classmethod
@@ -33,10 +36,11 @@ class Parallelotope(Body):
         ]
         return cls(org=Point(org), basis=Poly(basis))
     
-    def decompose(self) -> Iterable[Self]:
+    def decompose(self, diagonal: bool = False) -> Iterable[Self]:
         """Return the n-1-dimensional faces.
         We don't worry about the orientation.
         """
+        assert not diagonal
         if self.decomposed is not None:
             return self.decomposed
         inv = self.basis.scale(-1)
@@ -76,9 +80,9 @@ class Parallelotope(Body):
         assert line.my_dim() == 1
         my_dims = self.my_dim()
         basis_span = self.extend_to_square()
-        #print(f"  basis_span={basis_span}") # DEBUG
+        print(f"  basis_span={basis_span}") # DEBUG
         line2 = basis_span.extract_from(line)
-        #print(f"  line2={line2}") # DEBUG
+        print(f"  line2={line2}") # DEBUG
         all_min = None
         all_max = None
         for i in range(line2.space_dim()):

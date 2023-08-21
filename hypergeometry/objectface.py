@@ -1,22 +1,23 @@
 
-from typing import Iterable, Union
+from typing import Iterable, List
 import numpy as np
 
 from hypergeometry.point import Point
-from hypergeometry.simplex import Simplex
+from hypergeometry.body import Body
 from hypergeometry.parallelotope import Parallelotope
+from hypergeometry.simplex import Simplex
 from hypergeometry.light import Light
 
 class ObjectFace:
     """This class represents a D-1-dimensional face of a D-dimensional object in a D-dimensional space.
-    For simplicity, objects and therefore faces are all simplices and parallelotopes.
+    For simplicity, objects and therefore faces are all simplices (and parallelotopes).
     """
     
     def __init__(
             self,
-            body: Union[Simplex, Parallelotope],
+            body: Body,
             normal: Point,
-            color = [1,1,1],
+            color = (1,1,1),
             surface = 'matte',
         ):
         assert body.my_dim() == body.space_dim() - 1
@@ -28,18 +29,33 @@ class ObjectFace:
     @classmethod
     def from_body(
             cls,
-            body: Union[Simplex, Parallelotope],
-            color = [1,1,1],
-            surface = 'matte',
-            random_color = False,
+            body: Body,
+            color = (1,1,1),
+            surface: str = 'matte',
+            diagonal: bool = True
         ):
-        """Generate a list of pbjects from the faces of `body`"""
+        """Generate a list of ObjectFace objects from the faces of `body`"""
         assert body.my_dim() == body.space_dim()
-        if random_color:
-            return [cls(body=b, normal=n, color=np.random.rand(3), surface=surface) for b, n in body.decompose_with_normals()]
-        return [cls(body=b, normal=n, color=color, surface=surface) for b, n in body.decompose_with_normals()]
-    
-    def get_color(self, point: Point, lights: Iterable[Light], eye: Point, ambient: float = .2):
+        if isinstance(body, Parallelotope):
+            print("WARNING: You probably don't want to use parallelotope faces as their projections are not parallelotopes.")
+            print("Use from_triangulated() instead.")
+        return [cls(body=b, normal=n, color=color, surface=surface) for b, n in body.decompose_with_normals(diagonal=diagonal)]
+
+    @classmethod
+    def from_triangulated(
+            cls,
+            body: Parallelotope,
+            color=(1, 1, 1),
+            surface: str = 'matte'
+        ):
+        """Generate a list of ObjectFace objects from a parallelotope by first "triangulating" it into simplices,
+        and then taking the D-1-dimensional faces of them"""
+        out = []
+        for simplex in Simplex.from_parallelotope(body):
+            out.extend(cls.from_body(body=simplex, color=color, surface=surface, diagonal=False))
+        return out
+
+    def get_color(self, point: Point, lights: List[Light], eye: Point, ambient: float = .2):
         assert len(lights) == 1
         to_light = lights[0].p.sub(point).norm()
         to_eye = eye.sub(point).norm()

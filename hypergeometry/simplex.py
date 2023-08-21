@@ -1,11 +1,13 @@
-from typing import Iterable, Union
+from typing import Iterable, Union, Any
+Self = Any
 import numpy as np
 
-from hypergeometry.utils import EPSILON, select_of
+from hypergeometry.utils import EPSILON, select_of, loop_natural_bin
 from hypergeometry.point import Point
 from hypergeometry.poly import Poly
 from hypergeometry.span import Span
 from hypergeometry.body import Body
+from hypergeometry.parallelotope import  Parallelotope
 
 class Simplex(Body):
     """An n-dimensional simplex defined as n vectors from a
@@ -13,12 +15,34 @@ class Simplex(Body):
     X = Org + x0*V0 + ... + xn*Vn
     where 0 <= xi and Sum(xi) <= 1
     """
-    
-    def decompose(self) -> Iterable['Simplex']:
-        """Return the n-1-dimensional faces
+
+    @classmethod
+    def from_cube(cls, dim: int) -> Iterable[Self]:
+        """Return simplices arranged on the surface of a unit hypercube, effectively "triangulating" it"""
+        out = []
+        for ix, a in enumerate(loop_natural_bin(dim)):
+            if (ix % 2) == 0:
+                basis = np.zeros((dim, dim))
+                for j in range(dim):
+                    basis[j, j] = 1 if a[j] == 0 else -1
+                out.append(cls(org=Point(a), basis=Poly(basis)))
+        return out
+
+    @classmethod
+    def from_parallelotope(cls, p: Parallelotope) -> Iterable[Self]:
+        """Return simplices arranged on the surface the given parallelotope, effectively "triangulating" it"""
+        return [
+            p.apply_to(simplex)
+            for simplex in cls.from_cube(p.my_dim())
+        ]
+
+    def decompose(self, diagonal: bool = True) -> Iterable[Self]:
+        """Return the n-1-dimensional faces of this simplex.
         Note: we don't worry about the orientation"""
         if self.decomposed is not None:
-            return self.decomposed
+            if diagonal:
+                return self.decomposed
+            return self.decomposed[:-1]
         o = [
             Simplex(
                 org=self.org,
@@ -30,7 +54,9 @@ class Simplex(Body):
             basis=Poly(self.basis.p[1:] - self.basis.p[0])
         ))
         self.decomposed = o
-        return self.decomposed
+        if diagonal:
+            return self.decomposed
+        return self.decomposed[:-1]
 
     def midpoint(self) -> Point:
         return self.org.add( self.basis.sum().scale(1./(self.my_dim() + 1.)) )

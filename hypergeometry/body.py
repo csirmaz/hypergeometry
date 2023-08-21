@@ -1,4 +1,5 @@
-from typing import Union
+from typing import Any, Iterable, Union
+Self = Any
 
 from hypergeometry.point import Point
 from hypergeometry.span import Span
@@ -9,13 +10,15 @@ class Body(Span):
     those classes and implementing methods that are for bodies but are independent
     of the actual type"""
 
-    def decompose(self):
+    def decompose(self, diagonal: bool = True) -> Iterable[Self]:
         raise NotImplementedError("Implement in subclasses")
 
     def decompose_to(self, dim: int):
         """Return dim-dimensional faces of the body"""
-        assert dim < self.my_dim()
-        if dim == self.my_dim() - 1:
+        assert dim <= self.my_dim()
+        if dim == self.my_dim():
+            yield self
+        elif dim == self.my_dim() - 1:
             for face in self.decompose():
                 yield face
         else:
@@ -45,47 +48,24 @@ class Body(Span):
         Returns None if the line misses the body."""
         assert line.my_dim() == 1
         assert line.space_dim() == self.space_dim()
-        # We can only calculate intersections for non-degenerate spans
+        # We can only calculate intersections for non-degenerate spans,
         # so we try all sub-spans of all dimensions
-        for target_dim in range(self.my_dim(), 0, -1):
+        for target_dim in range(min(self.my_dim(), self.space_dim()), max(0, self.space_dim() - 2), -1):
             min_f = None
-            for subspan in self.get_subspans(dim=target_dim): # TODO PROB USE DECOMOPOSE_TO & REMOVE SUBSPANS
-                if subspan.basis.is_independent():
-                    f = subspan.intersect_line(line)
+            for face in self.decompose_to(dim=target_dim):
+                if face.basis.is_independent():
+                    f = face.intersect_line(line)
                     if f is not None:
                         if min_f is None or f < min_f: min_f = f
             if min_f is not None:
                 return min_f
         return None
 
-    def distance_on_2d(self, line: Span) -> float:
-        """Return, in multiples of alpha (where line = O + alpha * D)
-        the distance of this body to O in a 2D space.
-        Returns None if the line misses the body."""
-        
-        # TODO Extend to any dim; use util to get subset of vectors
-        assert line.space_dim() == 2
-        assert line.my_dim() == 1
-        assert self.space_dim() == 2
-        if self.my_dim() > 1:
-            d = [x.distance_on_2d(line) for x in self.decompose()]
-            d = [x for x in d if x is not None]
-            if len(d):
-                return min(d)
-            return None
-
-        # 1D body (line segment)
-        alpha, beta = line.intersect_lines_2d(self)
-        # TODO Handle when lines coincide?
-        if beta is None or beta < 0 or beta > 1:
-            return None
-        return alpha
-            
-    def decompose_with_normals(self):
+    def decompose_with_normals(self, diagonal: bool = True) -> Iterable[Self]:
         """Return the faces with their normals pointing outwards from the body"""
         mid = self.midpoint()
-        for face in self.decompose():
-            normal = face.basis.extend_to_square().at(-1).norm()
+        for face in self.decompose(diagonal=diagonal):
+            normal = face.basis.extend_to_square().make_basis().at(-1)
             facemid = face.midpoint()
             m = facemid.sub(mid).dot(normal)
             if m < 0:
@@ -93,4 +73,4 @@ class Body(Span):
             elif m == 0:
                 raise Exception("normal perpendicular to vector to midpoint?")
             yield face, normal
-            
+

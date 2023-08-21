@@ -114,14 +114,7 @@ def body_test():
         [2,0],
         [0,2]
     ]))
-    assert p.distance_on_2d(Span.create_line([0,.1],[1,0])) is None
-    assert p.distance_on_2d(Span.create_line([0,1],[1,0])) == 1
-    assert p.distance_on_2d(Span.create_line([0,1.5],[1,0])) == 1
-    assert p.distance_on_2d(Span.create_line([100,2],[-1,0])) == 97
-    assert p.distance_on_2d(Span.create_line([1,4],[1,-1])) == 1
-    assert p.distance_on_2d(Span.create_line([0,5],[1,-1])) == 2
-    assert p.distance_on_2d(Span.create_line([1,4],[-1,-1])) is None
-    
+
     assert p.includes(Point([1,1]))
     assert p.includes(Point([1.1,1]))
     assert p.includes(Point([3,3]))

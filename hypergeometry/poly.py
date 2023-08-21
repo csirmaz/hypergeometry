@@ -210,7 +210,7 @@ class Poly:
             if v is not None:
                 out.append(v.norm())
         r = self.__class__(out)
-        assert r.is_orthonormal()
+        assert r.is_orthonormal() # DEBUG
         return r
 
     def extend_to_square(self, force=False) -> Self:

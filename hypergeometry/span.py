@@ -26,7 +26,7 @@ class Span:
         # We cache them to make them persistent for operations like extendind to square etc.
         
     @classmethod
-    def default_span(cls, dim: float) -> Self:
+    def default_span(cls, dim: int) -> Self:
         """Convenience function to create a Span for the whole space at the origin"""
         return cls(org=Point.zeros(dim), basis=Poly.from_identity(dim))
         
@@ -69,7 +69,7 @@ class Span:
     def allclose(self, o: Self):
         return self.org.allclose(o.org) and self.basis.allclose(o.basis)
     
-    def apply_to(self, subject: Union[Point, Poly, 'Span']) -> Any:
+    def apply_to(self, subject: Union[Point, Poly, Self]) -> Any:
         """Return the absolute coordinates of the point(s) represented relative to this span"""
         if isinstance(subject, Span):
             return subject.__class__(
@@ -78,7 +78,7 @@ class Span:
             )
         return self.basis.apply_to(subject).add(self.org)
     
-    def extract_from(self, subject: Union[Point, Poly, 'Span']) -> Any:
+    def extract_from(self, subject: Union[Point, Poly, Self]) -> Any:
         """Represent the point(s) (not vectors!) in `subject` relative to this Span"""
         if isinstance(subject, Span):
             return subject.__class__(
