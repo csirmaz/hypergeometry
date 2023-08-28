@@ -61,13 +61,17 @@ class Simplex(Body):
     def midpoint(self) -> Point:
         return self.org.add( self.basis.sum().scale(1./(self.my_dim() + 1.)) )
         
-    def includes(self, point: Point) -> bool:
+    def includes(self, point: Point, debug=False) -> bool:
         """Returns whether the point is in the body"""
         # Can only be used if the body is NOT degenerate
         # (vectors in basis are independent)
         assert self.space_dim() == point.dim()
-        p = self.extract_from(point)
-        return ((p.c >= -EPSILON).all() and np.sum(p.c) <= 1+EPSILON)
+        p = self.extract_from(point, debug=debug)
+        r = ((p.c >= -EPSILON).all() and np.sum(p.c) <= 1+EPSILON)
+        if debug and r:
+            print(f"    (Simplex:includes) {self} includes {point}")
+            print(f"    (Simplex:includes) p={p} sum={np.sum(p.c)} EPSILON={EPSILON}")
+        return r
     
     def intersect_line(self, line: Span) -> Union[float, None]:
         """Given a line represented as a Span

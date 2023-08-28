@@ -115,13 +115,13 @@ def body_test():
         [0,2]
     ]))
 
-    assert p.includes(Point([1,1]))
-    assert p.includes(Point([1.1,1]))
-    assert p.includes(Point([3,3]))
-    assert p.includes(Point([1.1,2.9]))
-    assert not p.includes(Point([0,0]))
-    assert not p.includes(Point([1,.9]))
-    assert not p.includes(Point([1,3.1]))
+    assert p.includes(Point([1, 1]))
+    assert p.includes(Point([1.1, 1]))
+    assert p.includes(Point([3, 3]))
+    assert p.includes(Point([1.1, 2.9]))
+    assert not p.includes(Point([0, 0]))
+    assert not p.includes(Point([1, .9]))
+    assert not p.includes(Point([1, 3.1]))
     
     assert p.intersect_line(Span.create_line([0,0],[1,1])) == 1
     assert p.intersect_line(Span.create_line([0,0],[1,0])) is None
@@ -135,13 +135,13 @@ def body_test():
         [2,0],
         [0,2]
     ]))
-    assert s.includes(Point([1,1]))
-    assert s.includes(Point([1.1,1.1]))
-    assert s.includes(Point([2,2]))
-    assert s.includes(Point([1,3]))
-    assert s.includes(Point([1.1,2.9]))
-    assert not s.includes(Point([1.1,3]))
-    assert not s.includes(Point([2.1,2.1]))
+    assert s.includes(Point([1, 1]))
+    assert s.includes(Point([1.1, 1.1]))
+    assert s.includes(Point([2, 2]))
+    assert s.includes(Point([1, 3]))
+    assert s.includes(Point([1.1, 2.9]))
+    assert not s.includes(Point([1.1, 3]))
+    assert not s.includes(Point([2.1, 2.1]))
 
     assert s.intersect_line(Span.create_line([0,0],[1,1])) == 1
     assert s.intersect_line(Span.create_line([0,0],[1,0])) is None

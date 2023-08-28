@@ -62,7 +62,7 @@ class Parallelotope(Body):
     def midpoint(self) -> Point:
         return self.org.add( self.basis.sum().scale(.5) )
         
-    def includes(self, point: Point) -> bool:
+    def includes(self, point: Point, debug=False) -> bool:
         """Returns whether the point is in the body"""
         # Can only be used if the body is NOT degenerate
         # (vectors in basis are independent)

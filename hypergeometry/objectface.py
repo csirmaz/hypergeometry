@@ -25,7 +25,10 @@ class ObjectFace:
         self.body = body
         self.color = np.array(color, dtype='float')
         self.normal = normal
-        
+
+    def __str__(self):
+        return f"{{body={self.body} normal={self.normal} bodyclass={self.body.__class__}}}"
+
     @classmethod
     def from_body(
             cls,
@@ -52,7 +55,8 @@ class ObjectFace:
         and then taking the D-1-dimensional faces of them"""
         out = []
         for simplex in Simplex.from_parallelotope(body):
-            out.extend(cls.from_body(body=simplex, color=color, surface=surface, diagonal=False))
+            faces = cls.from_body(body=simplex, color=color, surface=surface, diagonal=False)
+            out.extend(faces)
         return out
 
     def get_color(self, point: Point, lights: List[Light], eye: Point, ambient: float = .2):

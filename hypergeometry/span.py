@@ -78,14 +78,14 @@ class Span:
             )
         return self.basis.apply_to(subject).add(self.org)
     
-    def extract_from(self, subject: Union[Point, Poly, Self]) -> Any:
+    def extract_from(self, subject: Union[Point, Poly, Self], debug: bool = False) -> Any:
         """Represent the point(s) (not vectors!) in `subject` relative to this Span"""
         if isinstance(subject, Span):
             return subject.__class__(
-            org=self.extract_from(subject.org),
-            basis=self.basis.extract_from(subject.basis) # We don't want to shift vectors
-        )
-        return self.basis.extract_from(subject.sub(self.org))
+                org=self.extract_from(subject.org),
+                basis=self.basis.extract_from(subject.basis) # We don't want to shift vectors
+            )
+        return self.basis.extract_from(subject.sub(self.org), debug=debug)
 
     def get_line_point(self, d: float) -> Point:
         """Convencience function to get a point on the line represented by the Span"""

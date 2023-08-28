@@ -29,16 +29,16 @@ class Body(Span):
     def midpoint(self) -> Point:
         raise NotImplementedError("Implement in subclasses")
 
-    def includes(self, point: Point) -> bool:
+    def includes(self, point: Point, debug: bool = False) -> bool:
         """Returns whether the body includes the point"""
         raise NotImplementedError("Implement in subclasses")
     
-    def includes_sub(self, point: Point) -> bool:
+    def includes_sub(self, point: Point, debug: bool = False) -> bool:
         """Returns whether the projection of the body contains the point"""
         assert self.space_dim() == point.dim()
         for face in self.decompose_to(self.space_dim()):
-            if face.basis.is_independent():
-                if face.includes(point):
+            if not face.basis.is_degenerate(debug=debug):
+                if face.includes(point, debug=debug):
                     return True
         return False
 
@@ -53,7 +53,7 @@ class Body(Span):
         for target_dim in range(min(self.my_dim(), self.space_dim()), max(0, self.space_dim() - 2), -1):
             min_f = None
             for face in self.decompose_to(dim=target_dim):
-                if face.basis.is_independent():
+                if not face.basis.is_degenerate():
                     f = face.intersect_line(line)
                     if f is not None:
                         if min_f is None or f < min_f: min_f = f

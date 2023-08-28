@@ -18,6 +18,7 @@ class Poly:
         self.transpose = None  # caches np.array to save time
         self.inverse = None  # caches np.array to save time
         self.pseudoinverse = None # caches np.array to save time
+        self.determinant = None # caches the determinant
         self.square = None # caches Poly to save time
 
     def __str__(self):
@@ -42,6 +43,7 @@ class Poly:
         self.transpose = None
         self.inverse = None
         self.pseudoinverse = None
+        self.determinant = None
         self.square = None
         return self
     
@@ -72,6 +74,11 @@ class Poly:
         if self.pseudoinverse is None:
             self.pseudoinverse = np.linalg.pinv(self.p)
         return self.pseudoinverse
+
+    def _get_determinant(self) -> float:
+        if self.determinant is None:
+            self.determinant = np.linalg.det(self.p)
+        return self.determinant
 
     def map(self, lmbd) -> Self:
         """Generate a new Poly object using a lambda function applied to Point objects"""
@@ -163,9 +170,28 @@ class Poly:
             return True
         self.orthonormal = False
         return False
+
+    def is_degenerate(self, debug: bool = False) -> bool:
+        """Return if vectors in this matrix are, or are almost, linearly dependent."""
+        # Unlike (the inverse of) is_independent(), this function returns True
+        # if a square matrix is close to being degenerate, even if technically numpy
+        # can calculate an inverse (containing very large numbers). Using such an inverse
+        # for mapping leads to numerical instability and nonsense results.
+        if self.independent is not None and not self.independent:
+            return True
+        if self.is_square():
+            d = self._get_determinant()
+            if debug:
+                print(f"(poly:is_degenerate) det={d}")
+            return (abs(d) < 1e-17)
+        print("Warning: we currently cannot assess non-square matrices being almost-degenerate")
+        return (not self.is_independent())
     
     def is_independent(self, force=False) -> bool:
         """Returns if the rows as vectors are linearly independent"""
+        # Note that this is a STRICT view of independence. Vectors in a matrix may be almost
+        # linearly dependent, while technically numpy can still calculate an inverse. See
+        # is_degenerate().
         if self.independent is not None and not force:
             return self.independent
         if not force:
@@ -242,7 +268,13 @@ class Poly:
             return subject.__class__(subject.p @ self.p) # <NUM, DIM> @ <bNUM, bDIM> -> <NUM, bDIM>
         raise Exception("apply_to: unknown type")
     
-    def extract_from(self, subject: Union['Poly', Point]) -> Union['Poly', Point]:
+    def extract_from(
+            self,
+            subject: Union['Poly', Point],
+            allow_projection: bool = False,
+            check_result: bool = False,
+            debug: bool = False
+    ) -> Union['Poly', Point]:
         """
         Represent the point(s) in `subject` relative to the basis in `self`.
         
@@ -251,27 +283,56 @@ class Poly:
         the whole space), and return x=<subj>@<basis>^-1, that is, vectors x for which
         x@<basis>=<subject>.
         
-        If `self` is not square, return the coordinates which make up the projection of
+        If `self` is not square and allow_projection is True, return the coordinates
+        which make up the projection of
         the subject onto the subspace spanned by the basis relative to it. 
         If `self` is orthonormal, use the transpose, which may be more accurate.
         Otherwise, use the pseudo-inverse of the matrix.
         """
         if self.is_square():
+            if debug:
+                print(f"      (poly:extract_from) is_square")
             si = self._get_inverse()
             # Throws exception if not invertible
+            projected = False
         else:
-            assert self.num() < self.dim() # Guaranteed that the vectors are not independent and so the operation doesn't make sense
+            assert self.num() < self.dim() # Otherwise guaranteed that the vectors are not independent and so the operation doesn't make sense
+            if not allow_projection:
+                raise Exception("extract_from: projection is not allowed")
+            projected = True
             if self.is_orthonormal():
+                if debug:
+                    print(f"      (poly:extract_from) is_ortho")
                 si = self._get_transpose()
             else:
                 # Getting the pseudoinverse does not warn if the vectors are not independent
                 if not self.is_independent():
+                    # WARNING even if the matrix passes this filter, it may be very narrow (small determinant) making
+                    # the results unstable
                     raise Exception("extract_from: not independent")
+                if debug:
+                    print(f"      (poly:extract_from) get pseudoinverse")
                 si = self._get_pseudoinverse()
+        if debug:
+            print(f"      (poly:extract_from) self={self} si={si}")
         if isinstance(subject, Point):
-            return Point(subject.c @ si)
+            r = subject.c @ si
+            if debug:
+                print(f"      (poly:extract_from) result: Point({r})")
+            if check_result and not projected:
+                # Check reverse as matrices that are close to being degenerate will not give correct result
+                if not np.allclose(r @ self.p, subject.c):
+                    raise Exception(f"extract_from: Invalid result det={np.linalg.det(self.p)}")
+            return Point(r)
         if isinstance(subject, Poly):
-            return Poly(subject.p @ si)
+            r = subject.p @ si
+            if debug:
+                print(f"      (poly:extract_from) result: Poly({r})")
+            if check_result and not projected:
+                # Check reverse as matrices that are close to being degenerate will not give correct result
+                if not np.allclose(r @ self.p, subject.p):
+                    raise Exception(f"extract_from: Invalid result det={np.linalg.det(self.p)}")
+            return Poly(r)
         raise Exception("extract_from: unknown type")
         
 
