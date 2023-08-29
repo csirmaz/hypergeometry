@@ -1,5 +1,5 @@
 
-from typing import Iterable, Union, Any
+from typing import Iterable, Union, Any, List
 Self=Any
 import numpy as np
 
@@ -20,6 +20,7 @@ class Poly:
         self.pseudoinverse = None # caches np.array to save time
         self.determinant = None # caches the determinant
         self.square = None # caches Poly to save time
+        self.norm_square = None # cache
 
     def __str__(self):
         return "(" + ",\n".join((f"{p}" for p in self.to_points())) + ")"
@@ -45,14 +46,12 @@ class Poly:
         self.pseudoinverse = None
         self.determinant = None
         self.square = None
+        self.norm_square = None
         return self
     
     def clone(self) -> Self:
         """Returns a deep clone"""
         r = self.__class__(self.p)
-        r.orthonormal = self.orthonormal
-        r.independent = self.independent
-        r.square = self.square
         return r
      
     def _get_transpose(self) -> np.ndarray:
@@ -140,7 +139,7 @@ class Poly:
         """Normalise each vector"""
         return self.__class__(self.p / np.sqrt(np.square(self.p).sum(axis=1, keepdims=True)))
     
-    def rotate(self, coords: Iterable[int], rad: float) -> Self:
+    def rotate(self, coords: List[int], rad: float) -> Self:
         """Rotate each point. coords is a list of 2 coordinate indices that we rotate"""
         assert len(coords) == 2
         ca, cb = coords
@@ -179,14 +178,20 @@ class Poly:
         # for mapping leads to numerical instability and nonsense results.
         if self.independent is not None and not self.independent:
             return True
-        if self.is_square():
-            d = self._get_determinant()
+        subj = self
+        if not self.is_square():
+            # For non-square matrices, we extend first to a square matrix with vectors
+            # that are perpendicular to the existing ones
+            if not self.is_independent():
+                return True
             if debug:
-                print(f"(poly:is_degenerate) det={d}")
-            return (abs(d) < 1e-17)
-        print("Warning: we currently cannot assess non-square matrices being almost-degenerate")
-        return (not self.is_independent())
-    
+                print(f"    (poly:is_degenerate) using extended")
+            subj = self.extend_to_norm_square(debug=debug)
+        d = subj._get_determinant()
+        if debug:
+            print(f"    (poly:is_degenerate) det={d}")
+        return (abs(d) < 1e-17)
+
     def is_independent(self, force=False) -> bool:
         """Returns if the rows as vectors are linearly independent"""
         # Note that this is a STRICT view of independence. Vectors in a matrix may be almost
@@ -239,7 +244,7 @@ class Poly:
         assert r.is_orthonormal() # DEBUG
         return r
 
-    def extend_to_square(self, force=False) -> Self:
+    def extend_to_square(self, force: bool = False, debug: bool = False) -> Self:
         """Ensure that these vectors are linearly independent and return an extended Poly
         whose vectors are also linearly independent and has a square shape"""
         if not self.is_independent():
@@ -256,8 +261,25 @@ class Poly:
             assert n.is_square()
             if n.is_independent():
                 self.square = n
+                if debug:
+                    print(f"  (poly:extend_to_square) Extended to {n}")
                 return n
-    
+
+    def extend_to_norm_square(self, debug: bool = False) -> Self:
+        """Ensure these vectors are linearly independent and return an extended square Poly
+        where the additional vectors are perpendicular to the lower dimensional original poly"""
+        if self.is_square():
+            raise Exception("extend_to_norm_square: already square")
+        if self.norm_square is not None:
+            return self.norm_square
+        sq = self.extend_to_square(debug=debug).make_basis()
+        r = self.__class__(np.concatenate((self.p, sq.p[self.num():]), axis=0))
+        assert r.is_square()
+        if debug:
+            print(f"  (poly:extend_to_norm_square) Extended to {r}")
+        self.norm_square = r
+        return r
+
     def apply_to(self, subject: Union['Poly', Point]) -> Union['Poly', Point]:
         """Get the linear combination of vectors in `self` according to the vector(s) in `subject`.
         If `self` is a basis, this converts vector(s) expressed in that basis into absolute coordinates."""

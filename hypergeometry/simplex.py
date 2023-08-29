@@ -69,7 +69,7 @@ class Simplex(Body):
         p = self.extract_from(point, debug=debug)
         r = ((p.c >= -EPSILON).all() and np.sum(p.c) <= 1+EPSILON)
         if debug and r:
-            print(f"    (Simplex:includes) {self} includes {point}")
+            print(f"    (Simplex:includes) Yes, {self} includes {point}")
             print(f"    (Simplex:includes) p={p} sum={np.sum(p.c)} EPSILON={EPSILON}")
         return r
     

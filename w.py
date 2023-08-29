@@ -10,7 +10,7 @@ from hypergeometry import Point, Poly, Span, Parallelotope, Simplex, Camera, Obj
 # list of ObjectFace objects
 OBJECTS = ObjectFace.from_triangulated(
     #Span.default_span(4).rotate([0,2], .9),
-    Parallelotope.create_box([0,0,0,-1], [.6,1,1,2]),
+    Parallelotope.create_box([0,0,0,-1], [.6,1,1,2]).rotate([0,2], .9),
     color=(.6, .5, 0)
 )
 
@@ -104,7 +104,7 @@ for picy in range(IMAGE_SIZE): # pixel
                 errors['ray3d_intersect'] += 1
                 draw_error(picx, picy)
                 # Run diagnostics
-                print(f">>> ray_3d intersect inconsistency")
+                print(f"\n>>> ray_3d intersect inconsistency")
                 print(f"  An object whose projection contains the 2D image point does not intersect the 3D ray")
                 print(f"  picx={picx} picy={picy} relevant obj ix={ix}")
                 print(f"  2d calculation:")
@@ -115,6 +115,7 @@ for picy in range(IMAGE_SIZE): # pixel
                 print(f"  3d calculation:")
                 print(f"    ray3d={ray_3d}")
                 print(f"    obj={OBJECTS_PROJ[3][ix]}")
+                tmp = OBJECTS_PROJ[3][ix].intersect_line_sub(ray_3d, debug=True)
                 continue
             # d is a value in the context of ray_3d, so this comparison makes sense
             if min_dist3 is None or d < min_dist3:
