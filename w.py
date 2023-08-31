@@ -3,6 +3,7 @@ from PIL import Image
 import numpy as np
 import time
 
+import hypergeometry.utils
 from hypergeometry import Point, Poly, Span, Parallelotope, Simplex, Camera, ObjectFace, Light
 
 
@@ -37,6 +38,7 @@ def make_tree():
 def main():
     # list of ObjectFace objects
     OBJECTS = make_tree()
+    # OBJECTS = ObjectFace.from_triangulated(Parallelotope.create_box([0,0,0,0],[1,1,1,2]), color=[1,1,1])
 
     CAMERAS = [
         Camera(space=Span.default_span(3), focd=-10), # 3D -> 2D
@@ -49,12 +51,10 @@ def main():
 
     RANGES = [ # coordinates
         2, # 2D [-a..a] x [-a..a]
-        3  # 3D [0..a]
     ]
 
     STEPS = [
         .01, # 2D
-        .05   # 3D
     ]
 
     # Span/Body objects (so we don't have to calculate normals)
@@ -68,8 +68,7 @@ def main():
             OBJECTS_PROJ[dim].append(obj)
 
     IMAGE_SIZE = int(RANGES[0] / STEPS[0] * 2)
-    MAX_PICZ = int(RANGES[1] / STEPS[1])
-    print(f"image size: {IMAGE_SIZE} max picz: {MAX_PICZ}")
+    print(f"image size: {IMAGE_SIZE}")
     img_arr = np.zeros((IMAGE_SIZE, IMAGE_SIZE, 3))
 
     def coord2pix(c):
@@ -108,7 +107,7 @@ def main():
     percent_done = 0
     for picy in range(IMAGE_SIZE): # pixel
         for picx in range(IMAGE_SIZE): # pixel
-            print(f"Pixel {picy},{picx}")
+            # print(f"Pixel {picy},{picx}")
 
             im_point_2d = Point([picx*STEPS[0]-RANGES[0], picy*STEPS[0]-RANGES[0]]) # image point on 2D canvas
 
@@ -196,4 +195,7 @@ def main():
 
     print(f"Errors encountered: {errors}")
 
+# import cProfile
+# cProfile.run('main()')
 main()
+hypergeometry.utils.print_profile()
