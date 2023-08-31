@@ -1,13 +1,14 @@
-from typing import Any
+from typing import Any, Optional
 Self=Any
 import numpy as np
 
-from hypergeometry.utils import NP_TYPE, loop_many_to
+from hypergeometry.utils import NP_TYPE, loop_many_to, EPSILON
 
 class Point:
     """Represents a point or vector of arbitrary dimensions"""
     
-    def __init__(self, coords):
+    def __init__(self, coords, origin: Optional[str] = None):
+        """`origin` indicates what called the constructor, for debugging"""
         self.c = np.array(coords, dtype=NP_TYPE)
     
     def __str__(self):
@@ -61,7 +62,8 @@ class Point:
 
     def is_zero(self) -> bool:
         """Return all coordinates are very close to 0"""
-        return self.allclose(Point.zeros(self.dim()))
+        return np.all(np.abs(self.c) < EPSILON)
+        # return self.allclose(Point.zeros(self.dim()))
     
     def length(self) -> float:
         """Return the length of the vector"""

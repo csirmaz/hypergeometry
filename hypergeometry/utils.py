@@ -7,6 +7,22 @@ DETERMINANT_LIMIT = 1e-17
 NP_TYPE = np.float_
 DEBUG = False
 
+PROFILING = {}
+
+
+def profiling(label: str, obj=None):
+    # print(f"PROFILING {label} {'' if obj is None else id(obj)}")
+    if label in PROFILING:
+        PROFILING[label] += 1
+    else:
+        PROFILING[label] = 1
+
+
+def print_profile():
+    for l in sorted(PROFILING.keys()):
+        print(f"{l}: {PROFILING[l]}")
+
+
 def select_of(num: int, max: int):
     """Yield all sets of num numbers from [0,max) without replacement.
     WARNING Mutates and yields the same list."""

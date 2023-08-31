@@ -1,11 +1,11 @@
 
-from typing import Union, List, Any
+from typing import Union, List, Any, Optional
 Self = Any
 import numpy as np
 
+from hypergeometry.utils import profiling
 from hypergeometry.point import Point
 from hypergeometry.poly import Poly
-from hypergeometry.combination import Combination
 
 
 class Span:
@@ -15,15 +15,16 @@ class Span:
     where -inf < xi < +inf
     """
     
-    def __init__(self, org: Point, basis: Poly):
+    def __init__(self, org: Point, basis: Poly, origin: Optional[str] = None):
+        """`origin` indicates what called the constructor, for debugging"""
         assert org.dim() == basis.dim()
         self.org = org
         self.basis = basis
         self.decomposed = None # Cache of D-1-dimensional faces
-        self.sub_spans = {}  # Cache of sub-spans
-        # Sub-spans are spans formed of a subset of the vectors of this span.
-        # We cache them to make them persistent for operations like extendind to square etc.
-        
+        self.nonzeros = None # Cache
+        self.norm_square = None # Cache
+        # profiling(f'Span.__init__({origin})', self)
+
     @classmethod
     def default_span(cls, dim: int) -> Self:
         """Convenience function to create a Span for the whole space at the origin"""
@@ -45,15 +46,10 @@ class Span:
     def my_dim(self) -> int:
         """The dimensionality of the subspace, assuming the vectors are independent"""
         return self.basis.num()
-    
-    @classmethod
-    def from_combination(cls, comb: Combination) -> Self:
-        return cls(org=comb.at(0), basis=Poly(comb.v.p[1:] - comb.v.p[0]))
-    
-    def as_combination(self) -> Combination:
-        return Combination(np.concatenate((np.zeros((1, self.space_dim())), self.basis.p), axis=0) + self.org.c)
-    
+
     def allclose(self, o: Self):
+        # Should be used for testing only
+        profiling('Span.allclose(!)')
         return self.org.allclose(o.org) and self.basis.allclose(o.basis)
     
     def apply_to(self, subject: Union[Point, Poly, Self]) -> Any:
@@ -83,30 +79,44 @@ class Span:
         new_org = self.org
         if around_origin:
             new_org = new_org.rotate(coords=coords, rad=rad)
-        return self.__class__(org=new_org, basis=self.basis.rotate(coords=coords, rad=rad))
+        return self.__class__(org=new_org, basis=self.basis.rotate(coords=coords, rad=rad), origin='Span.rotate')
     
     def persp_reduce(self, focd: float):
+        profiling('Span.persp_reduce')
         org_img = self.org.persp_reduce(focd)
         return self.__class__(
             org=org_img,
-            basis=self.basis.add(self.org).persp_reduce(focd).sub(org_img)
+            basis=self.basis.add(self.org).persp_reduce(focd).sub(org_img),
+            origin=f'Span.persp_reduce[{id(self)}]'
         )
     
     def extend_to_norm_square(self, permission: str) -> Self:
         """Return a new Span whose basis is a square extension"""
-        # TODO Cache object
-        return self.__class__(
+        if self.norm_square is not None:
+            profiling('Span.extend_to_norm_square:cache', self)
+            return self.norm_square
+        profiling('Span.extend_to_norm_square:do', self)
+        r = self.__class__(
             org=self.org,
-            basis=self.basis.extend_to_norm_square(permission=permission)
+            basis=self.basis.extend_to_norm_square(permission=permission),
+            origin=f'Span.extend_to_norm_square[{id(self)}]'
         )
+        self.norm_square = r
+        return r
 
     def get_nonzeros(self) -> Self:
         """Return the subset of vectors that are not all 0"""
-        # TODO Cache object
-        return self.__class__(
+        if self.nonzeros is not None:
+            profiling('Span.get_nonzeros:cache', self)
+            return self.nonzeros
+        profiling('Span.get_nonzeros:do', self)
+        r = self.__class__(
             org=self.org,
-            basis=self.basis.get_nonzeros()
+            basis=self.basis.get_nonzeros(),
+            origin='Span.get_nonzeros'
         )
+        self.nonzeros = r
+        return r
 
     def intersect_lines_2d(self, other: Self, test=False):
         """Return [alpha, beta] for two lines represented as

@@ -1,7 +1,7 @@
 from typing import Any, Iterable, Union
 Self = Any
 
-from hypergeometry.utils import DEBUG
+from hypergeometry.utils import DEBUG, profiling
 from hypergeometry.point import Point
 from hypergeometry.span import Span
 
@@ -27,6 +27,7 @@ class Body(Span):
     def get_nondegenerate_parts(self) -> Self:
         """Yield all nondegenerate faces; decompose until we get one that is not degenerate"""
         if self.my_dim() >= 1:
+            # WARNING Ensure all derivations are cached here so decomposing can be cached, too
             subj = self.get_nonzeros()
             if subj.my_dim() >= 1:
                 if subj.basis.is_degenerate():
@@ -68,6 +69,7 @@ class Body(Span):
 
     def decompose_with_normals(self, diagonal: bool = True) -> Iterable[Self]:
         """Return the faces with their normals pointing outwards from the body"""
+        profiling('body:decompose_with_normals')
         mid = self.midpoint()
         for face in self.decompose(diagonal=diagonal):
             normal = face.basis.extend_to_norm_square(permission="1").at(-1)
