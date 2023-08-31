@@ -2,7 +2,7 @@ from typing import Iterable, Union, Any
 Self = Any
 import numpy as np
 
-from hypergeometry.utils import EPSILON, PERMISSIVE_EPS, select_of, loop_natural_bin
+from hypergeometry.utils import EPSILON, PERMISSIVE_EPS, select_of, loop_natural_bin, DEBUG
 from hypergeometry.point import Point
 from hypergeometry.poly import Poly
 from hypergeometry.span import Span
@@ -61,19 +61,21 @@ class Simplex(Body):
     def midpoint(self) -> Point:
         return self.org.add( self.basis.sum().scale(1./(self.my_dim() + 1.)) )
         
-    def includes(self, point: Point, debug=False) -> bool:
+    def _includes(self, point: Point) -> bool:
         """Returns whether the point is in the body"""
         # Can only be used if the body is NOT degenerate
-        # (vectors in basis are independent)
+        # (vectors in basis are independent and not 0)
         assert self.space_dim() == point.dim()
-        p = self.extract_from(point, debug=debug)
-        r = ((p.c >= -EPSILON).all() and np.sum(p.c) <= 1+EPSILON)
-        if debug and r:
+        my_dims = self.my_dim()
+        basis_span = self.extend_to_norm_square(permission="any")
+        p = basis_span.extract_from(point)
+        r = ((p.c >= -EPSILON).all() and ((p.c[my_dims:]) <= EPSILON).all() and np.sum(p.c) <= 1+EPSILON)
+        if DEBUG and r:
             print(f"    (Simplex:includes) Yes, {self} includes {point}")
             print(f"    (Simplex:includes) p={p} sum={np.sum(p.c)} EPSILON={EPSILON}")
         return r
     
-    def intersect_line(self, line: Span, permissive: bool = False, debug: bool = False) -> Union[float, None]:
+    def _intersect_line(self, line: Span, permissive: bool = False) -> Union[float, None]:
         """Given a line represented as a Span
         (P = L0 + alpha Lv), return min(alpha) for which P falls inside
         this body, that is, the distance of this body from L0.
@@ -82,9 +84,9 @@ class Simplex(Body):
         assert self.space_dim() == line.space_dim()
         assert line.my_dim() == 1
         my_dims = self.my_dim()
-        basis_span = self.extend_to_square()
+        basis_span = self.extend_to_norm_square(permission="any")
         line2 = basis_span.extract_from(line)
-        if debug:
+        if DEBUG:
             print(f"  (Simplex:intersect_line) extended span={basis_span}")
             print(f"  (Simplex:intersect_line) extracted line={line2}")
         all_min = None
@@ -117,18 +119,18 @@ class Simplex(Body):
             # Numeric errors can cause vec to deviate from 0 enough not to allow an intersection to be found.
             if vec == 0 or (permissive and abs(vec) < PERMISSIVE_EPS):
                 if org < -EPSILON or org > mparam + EPSILON:
-                    if debug:
+                    if DEBUG:
                         print(f"  (Simplex:intersect_line) No intersection at i={i} as vec=0, mparam={mparam} org={org}")
                     return None
                 else:
-                    if debug:
+                    if DEBUG:
                         print(f"  (Simplex:intersect_line) i={i}: vec=0, mparam={mparam} org={org} (OK)")
             else:
                 this_min = (-EPSILON-org)/vec
                 this_max = (mparam+EPSILON-org)/vec
                 if vec < 0:
                     this_min, this_max = this_max, this_min
-                if debug:
+                if DEBUG:
                     print(f"  (Simplex:intersect_line) i={i} vec={vec} org={org} mparam={mparam} tmin={this_min} tmax={this_max}")
                 if all_min is None or all_min < this_min: all_min = this_min
                 if all_max is None or all_max > this_max: all_max = this_max
@@ -138,24 +140,24 @@ class Simplex(Body):
         sum_vec = np.sum(line2.basis.p[0])
         if sum_vec == 0:
             if sum_org < -EPSILON or sum_org > 1 + EPSILON:
-                if debug:
+                if DEBUG:
                     print(f"  (Simplex:intersect_line) No intersection as sum_vec=0, sum_org={sum_org}")
                 return None
             else:
-                if debug:
+                if DEBUG:
                     print(f"  (Simplex:intersect_line) sum_vec=0, sum_org={sum_org} (OK)")
         else:
             this_min = (-EPSILON-sum_org)/sum_vec
             this_max = (1+EPSILON-sum_org)/sum_vec
             if sum_vec < 0:
                 this_min, this_max = this_max, this_min
-            if debug:
+            if DEBUG:
                 print(f"  (Simplex:intersect_line) [sum] tmin={this_min} tmax={this_max}")
             if all_min is None or all_min < this_min: all_min = this_min
             if all_max is None or all_max > this_max: all_max = this_max
         assert all_min is not None
         if all_min > all_max:
-            if debug:
+            if DEBUG:
                 print(f"  (Simplex:intersect_line) No intersection due to combination")
             return None
         return all_min

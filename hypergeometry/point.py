@@ -2,26 +2,26 @@ from typing import Any
 Self=Any
 import numpy as np
 
-from hypergeometry.utils import loop_many_to
+from hypergeometry.utils import NP_TYPE, loop_many_to
 
 class Point:
     """Represents a point or vector of arbitrary dimensions"""
     
     def __init__(self, coords):
-        self.c = np.array(coords, dtype='float')
+        self.c = np.array(coords, dtype=NP_TYPE)
     
     def __str__(self):
-        return "(" + ", ".join((f"{x:.3f}" for x in self.c)) + ")"
+        return "Pt(" + ", ".join((f"{x:.3f}" for x in self.c)) + ")"
     
     @classmethod
     def zeros(cls, dim):
         """Create a Point of `dim` dimensions with all coordinates being 0"""
-        return cls(np.zeros((dim), dtype='float'))
+        return cls(np.zeros((dim), dtype=NP_TYPE))
     
     @classmethod
     def ones(cls, dim: int) -> Self:
         """Create a Point of `dim` dimensions with all coordinates being 1"""
-        return cls(np.ones((dim), dtype='float'))
+        return cls(np.ones((dim), dtype=NP_TYPE))
     
     @classmethod
     def all_coords_to(cls, dim: int, v: float) -> Self:
@@ -68,6 +68,9 @@ class Point:
         return np.sqrt(np.square(self.c).sum())
     
     def norm(self) -> Self:
+        l = self.length()
+        if l == 0:
+            raise Exception("normalising 0 vector")
         return self.__class__(self.c / self.length())
     
     def dot(self, p: Self) -> float:

@@ -1,9 +1,8 @@
 
-from typing import Union, Iterable, Any
+from typing import Union, List, Any
 Self = Any
 import numpy as np
 
-from hypergeometry.utils import select_of
 from hypergeometry.point import Point
 from hypergeometry.poly import Poly
 from hypergeometry.combination import Combination
@@ -37,7 +36,7 @@ class Span:
         return cls(org=Point(org), basis=Poly([direction]))
 
     def __str__(self):
-        return f"<o={self.org} b={self.basis}>"
+        return f"Span<org={self.org} basis={self.basis}>"
 
     def space_dim(self) -> int:
         """The dimensionality of the space we are part of"""
@@ -54,18 +53,6 @@ class Span:
     def as_combination(self) -> Combination:
         return Combination(np.concatenate((np.zeros((1, self.space_dim())), self.basis.p), axis=0) + self.org.c)
     
-    def get_subspans(self, dim: int) -> Iterable[Self]:
-        """Return a list of subspans of the given dimension.
-        Sub-spans are spans formed of a subset of the vectors of this span."""
-        if dim in self.sub_spans:
-            return self.sub_spans[dim]
-        assert dim <= self.my_dim()
-        self.sub_spans[dim] = [
-            self.__class__(org=self.org, basis=self.basis.subset(indices))
-            for indices in select_of(num=dim, max=self.my_dim())
-        ]
-        return self.sub_spans[dim]
-
     def allclose(self, o: Self):
         return self.org.allclose(o.org) and self.basis.allclose(o.basis)
     
@@ -83,16 +70,16 @@ class Span:
         if isinstance(subject, Span):
             return subject.__class__(
                 org=self.extract_from(subject.org),
-                basis=self.basis.extract_from(subject.basis) # We don't want to shift vectors
+                basis=self.basis.extract_from(subject.basis)  # We don't want to shift vectors
             )
-        return self.basis.extract_from(subject.sub(self.org), debug=debug)
+        return self.basis.extract_from(subject.sub(self.org))
 
     def get_line_point(self, d: float) -> Point:
         """Convencience function to get a point on the line represented by the Span"""
         assert self.my_dim() == 1
         return Point(self.org.c + self.basis.p[0] * d)
 
-    def rotate(self, coords: Iterable[int], rad: float, around_origin: bool = False) -> Self:
+    def rotate(self, coords: List[int], rad: float, around_origin: bool = False) -> Self:
         new_org = self.org
         if around_origin:
             new_org = new_org.rotate(coords=coords, rad=rad)
@@ -105,13 +92,22 @@ class Span:
             basis=self.basis.add(self.org).persp_reduce(focd).sub(org_img)
         )
     
-    def extend_to_square(self) -> Self:
+    def extend_to_norm_square(self, permission: str) -> Self:
         """Return a new Span whose basis is a square extension"""
+        # TODO Cache object
         return self.__class__(
             org=self.org,
-            basis=self.basis.extend_to_square()
+            basis=self.basis.extend_to_norm_square(permission=permission)
         )
-    
+
+    def get_nonzeros(self) -> Self:
+        """Return the subset of vectors that are not all 0"""
+        # TODO Cache object
+        return self.__class__(
+            org=self.org,
+            basis=self.basis.get_nonzeros()
+        )
+
     def intersect_lines_2d(self, other: Self, test=False):
         """Return [alpha, beta] for two lines represented as
         self =  o1 + alpha * d1 (-inf<alpha<inf)

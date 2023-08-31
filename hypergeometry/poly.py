@@ -3,6 +3,7 @@ from typing import Iterable, Union, Any, List
 Self=Any
 import numpy as np
 
+from hypergeometry.utils import NP_TYPE, DETERMINANT_LIMIT, EPSILON, DEBUG
 from hypergeometry.point import Point
 
 class Poly:
@@ -10,25 +11,29 @@ class Poly:
     
     def __init__(self, points):
         """Accepts a 2D matrix or a list of points"""
-        if isinstance(points[0], Point):
+        if len(points) > 0 and isinstance(points[0], Point):
             points = [p.c for p in points]
-        self.p = np.array(points, dtype='float')
+        self.p = np.array(points, dtype=NP_TYPE)
         self.orthonormal = None  # True of False if known to be orthonormal
         self.independent = None # True or False if known whether the vectors are linearly independent
         self.transpose = None  # caches np.array to save time
         self.inverse = None  # caches np.array to save time
         self.pseudoinverse = None # caches np.array to save time
-        self.determinant = None # caches the determinant
-        self.square = None # caches Poly to save time
-        self.norm_square = None # cache
+        self.degenerate = None # True or False if known to be degenerate
+        self.square = None # caches Poly() to save time
+        self.norm_square = None # caches Poly() to save time
+        self.nonzeros = None # caches Poly() to save time
 
     def __str__(self):
-        return "(" + ",\n".join((f"{p}" for p in self.to_points())) + ")"
-    
+        o = "" if self.num() <= 1 else "\n    "
+        rows = [ "(" + ", ".join((f"{x:.3f}" for x in r)) + ")" for r in self.p ]
+        o += "Py(" + ",\n       ".join(rows) + ")"
+        return o
+
     @classmethod
     def from_identity(cls, dim: int) -> Self:
         """Create a Poly from an identity matrix"""
-        r = cls(np.identity(dim, dtype='float'))
+        r = cls(np.identity(dim, dtype=NP_TYPE))
         r.orthonormal = True
         return r
 
@@ -44,9 +49,10 @@ class Poly:
         self.transpose = None
         self.inverse = None
         self.pseudoinverse = None
-        self.determinant = None
+        self.degenerate = None
         self.square = None
         self.norm_square = None
+        self.nonzeros = None
         return self
     
     def clone(self) -> Self:
@@ -74,11 +80,6 @@ class Poly:
             self.pseudoinverse = np.linalg.pinv(self.p)
         return self.pseudoinverse
 
-    def _get_determinant(self) -> float:
-        if self.determinant is None:
-            self.determinant = np.linalg.det(self.p)
-        return self.determinant
-
     def map(self, lmbd) -> Self:
         """Generate a new Poly object using a lambda function applied to Point objects"""
         return self.__class__([lmbd(Point(p)) for p in self.p])
@@ -105,7 +106,28 @@ class Poly:
     def subset(self, indices: Iterable[int]) -> Self:
         """Return a Poly formed from the vectors at the given indices"""
         return self.__class__(self.p[indices])
-    
+
+    def has_zero_vec(self) -> bool:
+        """Return if the poly has a zero vector"""
+        return np.any(np.all(np.abs(self.p) < EPSILON, axis=1))
+
+    def get_nonzeros(self):
+        """Return the subset of vectors that are not all 0"""
+        if self.nonzeros is not None:
+            return self.nonzeros
+        r = self.__class__(
+            self.p[
+                np.any(
+                    np.abs(self.p) >= EPSILON,
+                    axis=1
+                )
+            ]
+        )
+        assert r.dim() == self.dim()
+        assert r.num() <= self.num()
+        self.nonzeros = r
+        return r
+
     def to_points(self):
         """Separate into an array of Point objects"""
         return [Point(p) for p in self.p]
@@ -158,9 +180,9 @@ class Poly:
         a = focd / (focd - self.p[:,-1])
         return self.__class__(self.p[:,:-1] * np.expand_dims(a, axis=1))
     
-    def is_orthonormal(self, force=False) -> bool:
+    def is_orthonormal(self) -> bool:
         """Returns if the collection of vectors is an orthonormal basis (vectors are unit length and pairwise perpendicular)"""
-        if self.orthonormal is not None and not force:
+        if self.orthonormal is not None:
             return self.orthonormal
         dots = self.p @ self.p.transpose()
         identity = np.identity(self.num())
@@ -170,63 +192,89 @@ class Poly:
         self.orthonormal = False
         return False
 
-    def is_degenerate(self, debug: bool = False) -> bool:
+    def is_degenerate(self) -> bool:
         """Return if vectors in this matrix are, or are almost, linearly dependent."""
         # Unlike (the inverse of) is_independent(), this function returns True
         # if a square matrix is close to being degenerate, even if technically numpy
         # can calculate an inverse (containing very large numbers). Using such an inverse
         # for mapping leads to numerical instability and nonsense results.
+        if self.degenerate is not None:
+            return self.degenerate
+        if self.num() <= 1:
+            return False
         if self.independent is not None and not self.independent:
-            return True
+            self.degenerate = True
+            return self.degenerate
+        if self.has_zero_vec():
+            if DEBUG:
+                print(f"(poly:is_degenerate) Yes as has 0 vector")
+            self.degenerate = True
+            return self.degenerate
         subj = self
         if not self.is_square():
             # For non-square matrices, we extend first to a square matrix with vectors
             # that are perpendicular to the existing ones
             if not self.is_independent():
-                return True
-            if debug:
-                print(f"    (poly:is_degenerate) using extended")
-            subj = self.extend_to_norm_square(debug=debug)
-        d = subj._get_determinant()
-        if debug:
+                if DEBUG:
+                    print(f"(poly:is_degenerate) degenerate as not is_independent")
+                self.degenerate = True
+                return self.degenerate
+            if DEBUG:
+                print(f"(poly:is_degenerate) using extended")
+            subj = self.extend_to_norm_square(permission="pos")
+        d = np.linalg.det(subj.p)  # determinant
+        if DEBUG:
             print(f"    (poly:is_degenerate) det={d}")
-        return (abs(d) < 1e-17)
+        self.degenerate = (abs(d) < DETERMINANT_LIMIT)
+        return self.degenerate
 
-    def is_independent(self, force=False) -> bool:
+    def is_independent(self) -> bool:
         """Returns if the rows as vectors are linearly independent"""
         # Note that this is a STRICT view of independence. Vectors in a matrix may be almost
         # linearly dependent, while technically numpy can still calculate an inverse. See
         # is_degenerate().
-        if self.independent is not None and not force:
+        if self.independent is not None:
+            if DEBUG:
+                print(f"(is_independent) cached {self.independent} because {self.independent_reason}")
             return self.independent
-        if not force:
-            if self.orthonormal:
-                self.independent = True
-                return True
-            if self.inverse is not None:
-                self.independent = True
-                return True
+
+        if self.orthonormal:
+            self.independent = True
+            self.independent_reason = "orthonormal cache"
+            return True
+        if self.inverse is not None:
+            self.independent = True
+            self.independent_reason = "inverse cache"
+            return True
+
         if self.is_square():
             try:
                 self._get_inverse()
                 self.independent = True
+                self.independent_reason = "_get_inverse"
             except NotIndependentError:
                 self.independent = False
+                self.independent_reason = "not _get_inverse"
             return self.independent
         if self.num() > self.dim():
             self.independent = False
+            self.independent_reason = "tall"
             return False
         try:
             self.make_basis(strict=True)
             self.independent = True
+            self.independent_reason = "make_basis"
         except NotIndependentError:
             self.independent = False
+            self.independent_reason = "not make_basis"
         return self.independent
 
-    def make_basis(self, strict=True) -> Self:
+    def make_basis(self, strict: bool = True) -> Self:
         """Transform the vectors in self into an orthonormal basis (unit-length pairwise perpendicular vectors).
         If strict=False, may leave out vectors if they are not linearly independent.
         """
+        if DEBUG:
+            print(f"(make_basis) Called with {self}")
         out = [self.at(0).norm()]
         for i in range(1, self.num()):
             v = self.at(i)
@@ -244,39 +292,73 @@ class Poly:
         assert r.is_orthonormal() # DEBUG
         return r
 
-    def extend_to_square(self, force: bool = False, debug: bool = False) -> Self:
+    def extend_to_square(self, permission: str) -> Self:
         """Ensure that these vectors are linearly independent and return an extended Poly
-        whose vectors are also linearly independent and has a square shape"""
-        if not self.is_independent():
-            raise NotIndependentError("extend_to_square: not independent")
-        if self.is_square():
-            return self
+        whose vectors are also linearly independent and has a square shape
+
+        permission: "any" "pos" "1" -- how many extra dimensions we expect to add
+        """
         if self.num() > self.dim():
             raise Exception("extend_to_square: tall matrix")
-        if not force and self.square is not None:
+        if not self.is_independent():
+            raise NotIndependentError("extend_to_square: not independent")
+
+        if permission == "any":
+            if self.is_square():
+                return self
+        else:
+            if self.is_square():
+                raise Exception(f"extend_to_square: already square and permission is {permission}")
+            if permission == "pos":
+                pass
+            elif permission == "1":
+                assert self.num() == self.dim() - 1
+            else:
+                raise Exception("extend_to_square: Unknown permission {permission}")
+
+        if self.square is not None:
             return self.square
+
         while True:
             e = self.__class__.from_random(dim=self.dim(), num=(self.dim() - self.num()))
             n = self.__class__(np.concatenate((self.p, e.p), axis=0))
             assert n.is_square()
             if n.is_independent():
                 self.square = n
-                if debug:
-                    print(f"  (poly:extend_to_square) Extended to {n}")
+                if DEBUG:
+                    print(f"(poly:extend_to_square) Extended to {n}")
                 return n
 
-    def extend_to_norm_square(self, debug: bool = False) -> Self:
+    def extend_to_norm_square(self, permission: str) -> Self:
         """Ensure these vectors are linearly independent and return an extended square Poly
-        where the additional vectors are perpendicular to the lower dimensional original poly"""
-        if self.is_square():
-            raise Exception("extend_to_norm_square: already square")
+        where the additional vectors are perpendicular to the lower dimensional original poly
+
+        permission: "any" "pos" "1" -- how many extra dimensions we expect to add
+        """
+        if self.num() > self.dim():
+            raise Exception("extend_to_norm_square: tall matrix")
+
+        # Repeat here from extend_to_square as restriction cannot be cached
+        if permission == "any":
+            if self.is_square():
+                return self
+        else:
+            if self.is_square():
+                raise Exception(f"extend_to_norm_square: already square and permission is {permission}")
+            if permission == "pos":
+                pass
+            elif permission == "1":
+                assert self.num() == self.dim() - 1
+            else:
+                raise Exception("extend_to_norm_square: Unknown permission {permission}")
+
         if self.norm_square is not None:
             return self.norm_square
-        sq = self.extend_to_square(debug=debug).make_basis()
+        sq = self.extend_to_square(permission=permission).make_basis()
         r = self.__class__(np.concatenate((self.p, sq.p[self.num():]), axis=0))
         assert r.is_square()
-        if debug:
-            print(f"  (poly:extend_to_norm_square) Extended to {r}")
+        if DEBUG:
+            print(f"(poly:extend_to_norm_square) Extended to {r}")
         self.norm_square = r
         return r
 
@@ -290,13 +372,7 @@ class Poly:
             return subject.__class__(subject.p @ self.p) # <NUM, DIM> @ <bNUM, bDIM> -> <NUM, bDIM>
         raise Exception("apply_to: unknown type")
     
-    def extract_from(
-            self,
-            subject: Union['Poly', Point],
-            allow_projection: bool = False,
-            check_result: bool = False,
-            debug: bool = False
-    ) -> Union['Poly', Point]:
+    def extract_from(self, subject: Union['Poly', Point], allow_projection: bool = False, check_result: bool = False) -> Union['Poly', Point]:
         """
         Represent the point(s) in `subject` relative to the basis in `self`.
         
@@ -312,8 +388,8 @@ class Poly:
         Otherwise, use the pseudo-inverse of the matrix.
         """
         if self.is_square():
-            if debug:
-                print(f"      (poly:extract_from) is_square")
+            if DEBUG:
+                print(f"(poly:extract_from) is_square")
             si = self._get_inverse()
             # Throws exception if not invertible
             projected = False
@@ -323,8 +399,8 @@ class Poly:
                 raise Exception("extract_from: projection is not allowed")
             projected = True
             if self.is_orthonormal():
-                if debug:
-                    print(f"      (poly:extract_from) is_ortho")
+                if DEBUG:
+                    print(f"(poly:extract_from) is_orthonormal")
                 si = self._get_transpose()
             else:
                 # Getting the pseudoinverse does not warn if the vectors are not independent
@@ -332,15 +408,15 @@ class Poly:
                     # WARNING even if the matrix passes this filter, it may be very narrow (small determinant) making
                     # the results unstable
                     raise Exception("extract_from: not independent")
-                if debug:
-                    print(f"      (poly:extract_from) get pseudoinverse")
+                if DEBUG:
+                    print(f"(poly:extract_from) get pseudoinverse")
                 si = self._get_pseudoinverse()
-        if debug:
-            print(f"      (poly:extract_from) self={self} si={si}")
+        if DEBUG:
+            print(f"(poly:extract_from) self={self} si={self.__class__(si)}")
         if isinstance(subject, Point):
             r = subject.c @ si
-            if debug:
-                print(f"      (poly:extract_from) result: Point({r})")
+            if DEBUG:
+                print(f"(poly:extract_from) result: {Point(r)}")
             if check_result and not projected:
                 # Check reverse as matrices that are close to being degenerate will not give correct result
                 if not np.allclose(r @ self.p, subject.c):
@@ -348,8 +424,8 @@ class Poly:
             return Point(r)
         if isinstance(subject, Poly):
             r = subject.p @ si
-            if debug:
-                print(f"      (poly:extract_from) result: Poly({r})")
+            if DEBUG:
+                print(f"(poly:extract_from) result: {Poly(r)}")
             if check_result and not projected:
                 # Check reverse as matrices that are close to being degenerate will not give correct result
                 if not np.allclose(r @ self.p, subject.p):

@@ -2,11 +2,13 @@
 from typing import Iterable, List
 import numpy as np
 
+from hypergeometry.utils import NP_TYPE
 from hypergeometry.point import Point
 from hypergeometry.body import Body
 from hypergeometry.parallelotope import Parallelotope
 from hypergeometry.simplex import Simplex
 from hypergeometry.light import Light
+
 
 class ObjectFace:
     """This class represents a D-1-dimensional face of a D-dimensional object in a D-dimensional space.
@@ -23,7 +25,7 @@ class ObjectFace:
         assert body.my_dim() == body.space_dim() - 1
         assert body.space_dim() == normal.dim()
         self.body = body
-        self.color = np.array(color, dtype='float')
+        self.color = np.array(color, dtype=NP_TYPE)
         self.normal = normal
 
     def __str__(self):

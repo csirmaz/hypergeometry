@@ -1,7 +1,11 @@
 
+import numpy as np
+
 EPSILON = 1e-6
 PERMISSIVE_EPS = 2e-4
-
+DETERMINANT_LIMIT = 1e-17
+NP_TYPE = np.float_
+DEBUG = False
 
 def select_of(num: int, max: int):
     """Yield all sets of num numbers from [0,max) without replacement.

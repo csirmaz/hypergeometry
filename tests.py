@@ -50,25 +50,25 @@ def poly_test():
     points = Poly([[50,60,70],[-1,-3,-2]])
     assert base2.apply_to(base2.extract_from(points)).allclose(points)
     assert base2.apply_to(base2.extract_from(points.at(0))).allclose(points.at(0))
-    assert Poly([[1,0],[1,1]]).extract_from(Point([10.9, 31.4])).allclose(Point([-20.5, 31.4]))
-    assert Poly([[1,0,0],[1,1,0]]).extract_from(Point([10.9, 31.4, 100])).allclose(Point([-20.5, 31.4]))
-    assert Poly([[-1,0,0],[0,1,0]]).extract_from(Point([10.9, 31.4, 100])).allclose(Point([-10.9, 31.4]))
+    assert Poly([[1, 0], [1, 1]]).extract_from(Point([10.9, 31.4])).allclose(Point([-20.5, 31.4]))
+    assert Poly([[1, 0, 0], [1, 1, 0]]).extract_from(Point([10.9, 31.4, 100])).allclose(Point([-20.5, 31.4]))
+    assert Poly([[-1, 0, 0], [0, 1, 0]]).extract_from(Point([10.9, 31.4, 100])).allclose(Point([-10.9, 31.4]))
     
     assert p.is_independent()
     assert Poly.from_identity(5).is_independent()
     assert base2.is_independent()
     assert not Poly([p1, p1, p2]).is_independent()
     assert not Poly([
-        Point([0,1,2]),
-        Point([0,2,4])
+        Point([0, 1, 2]),
+        Point([0, 2, 4])
     ]).is_independent()
     assert not Poly([
-        Point([0,1,2]),
-        Point([7,6,5]),
-        Point([1,1,1])
+        Point([0, 1, 2]),
+        Point([7, 6, 5]),
+        Point([1, 1, 1])
     ]).is_independent()
     
-    assert p.extend_to_square().is_independent(force=True)
+    assert p.extend_to_square().is_independent()
 
 def span_test():
     p = Point([1,1,1])
@@ -115,54 +115,54 @@ def body_test():
         [0,2]
     ]))
 
-    assert p.includes(Point([1, 1]))
-    assert p.includes(Point([1.1, 1]))
-    assert p.includes(Point([3, 3]))
-    assert p.includes(Point([1.1, 2.9]))
-    assert not p.includes(Point([0, 0]))
-    assert not p.includes(Point([1, .9]))
-    assert not p.includes(Point([1, 3.1]))
+    assert p._includes(Point([1, 1]))
+    assert p._includes(Point([1.1, 1]))
+    assert p._includes(Point([3, 3]))
+    assert p._includes(Point([1.1, 2.9]))
+    assert not p._includes(Point([0, 0]))
+    assert not p._includes(Point([1, .9]))
+    assert not p._includes(Point([1, 3.1]))
     
-    assert p.intersect_line(Span.create_line([0,0],[1,1])) == 1
-    assert p.intersect_line(Span.create_line([0,0],[1,0])) is None
-    assert p.intersect_line(Span.create_line([1,0],[0,1])) == 1
-    assert p.intersect_line(Span.create_line([1,10],[0,-1])) == 7
+    assert p._intersect_line(Span.create_line([0, 0], [1, 1])) == 1
+    assert p._intersect_line(Span.create_line([0, 0], [1, 0])) is None
+    assert p._intersect_line(Span.create_line([1, 0], [0, 1])) == 1
+    assert p._intersect_line(Span.create_line([1, 10], [0, -1])) == 7
     p2 = Parallelotope(org=Point([1,1,1]), basis=Poly([[2,0,0],[0,2,0]]))
-    assert p2.intersect_line(Span.create_line([0,0,1],[1,1,0])) == 1
-    assert close(p2.intersect_line(Span.create_line([0,0,0],[1,1,1])), 1)
+    assert p2._intersect_line(Span.create_line([0, 0, 1], [1, 1, 0])) == 1
+    assert close(p2._intersect_line(Span.create_line([0, 0, 0], [1, 1, 1])), 1)
     
     s = Simplex(org=Point([1,1]), basis=Poly([
         [2,0],
         [0,2]
     ]))
-    assert s.includes(Point([1, 1]))
-    assert s.includes(Point([1.1, 1.1]))
-    assert s.includes(Point([2, 2]))
-    assert s.includes(Point([1, 3]))
-    assert s.includes(Point([1.1, 2.9]))
-    assert not s.includes(Point([1.1, 3]))
-    assert not s.includes(Point([2.1, 2.1]))
+    assert s._includes(Point([1, 1]))
+    assert s._includes(Point([1.1, 1.1]))
+    assert s._includes(Point([2, 2]))
+    assert s._includes(Point([1, 3]))
+    assert s._includes(Point([1.1, 2.9]))
+    assert not s._includes(Point([1.1, 3]))
+    assert not s._includes(Point([2.1, 2.1]))
 
-    assert s.intersect_line(Span.create_line([0,0],[1,1])) == 1
-    assert s.intersect_line(Span.create_line([0,0],[1,0])) is None
-    assert s.intersect_line(Span.create_line([1,0],[0,1])) == 1
-    assert s.intersect_line(Span.create_line([1,10],[0,-1])) == 7
-    assert s.intersect_line(Span.create_line([1,3.1],[1,-1])) is None
-    assert s.intersect_line(Span.create_line([1,3],[1,-1])) == 0
-    assert close(s.intersect_line(Span.create_line([2,2],[-1,-1])), 0)
-    assert close(s.intersect_line(Span.create_line([2.1,2.1],[-1,-1])), .1)
-    assert close(s.intersect_line(Span.create_line([2.6,1.6],[-1,-1])), .1)
+    assert s._intersect_line(Span.create_line([0, 0], [1, 1])) == 1
+    assert s._intersect_line(Span.create_line([0, 0], [1, 0])) is None
+    assert s._intersect_line(Span.create_line([1, 0], [0, 1])) == 1
+    assert s._intersect_line(Span.create_line([1, 10], [0, -1])) == 7
+    assert s._intersect_line(Span.create_line([1, 3.1], [1, -1])) is None
+    assert s._intersect_line(Span.create_line([1, 3], [1, -1])) == 0
+    assert close(s._intersect_line(Span.create_line([2, 2], [-1, -1])), 0)
+    assert close(s._intersect_line(Span.create_line([2.1, 2.1], [-1, -1])), .1)
+    assert close(s._intersect_line(Span.create_line([2.6, 1.6], [-1, -1])), .1)
     
     s2 = Simplex(org=Point([1,2]), basis=Poly([[1,1], [2,0]]))
     s3 = Simplex(org=Point([1,2]), basis=Poly([[2,0], [1,1]]))
     for ts in [s2, s3]:
-        assert close(ts.intersect_line(Span.create_line([0,0],[1,1])), 2)
-        assert close(ts.intersect_line(Span.create_line([1,0],[2,2])), 1)
-        assert ts.intersect_line(Span.create_line([1.1,0],[2,2])) is None
-        assert close(ts.intersect_line(Span.create_line([1,4],[1,-1])), 1)
-        assert close(ts.intersect_line(Span.create_line([0,4],[1,-1])), 1.5)
-        assert ts.intersect_line(Span.create_line([1.1,4],[1,-1])) is None
-        assert close(ts.intersect_line(Span.create_line([3,3],[-1,-1])), .5)
+        assert close(ts._intersect_line(Span.create_line([0, 0], [1, 1])), 2)
+        assert close(ts._intersect_line(Span.create_line([1, 0], [2, 2])), 1)
+        assert ts._intersect_line(Span.create_line([1.1, 0], [2, 2])) is None
+        assert close(ts._intersect_line(Span.create_line([1, 4], [1, -1])), 1)
+        assert close(ts._intersect_line(Span.create_line([0, 4], [1, -1])), 1.5)
+        assert ts._intersect_line(Span.create_line([1.1, 4], [1, -1])) is None
+        assert close(ts._intersect_line(Span.create_line([3, 3], [-1, -1])), .5)
 
 
 def line_test():
