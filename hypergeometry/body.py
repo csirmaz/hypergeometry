@@ -50,7 +50,7 @@ class Body(Span):
                     return True
         return False
 
-    def intersect_line_sub(self, line: Span, debug: bool = False) -> Union[float, None]:
+    def intersect_line_sub(self, line: Span, permissive: bool = False, debug: bool = False) -> Union[float, None]:
         """Return, in multiples of alpha (where line = O + alpha * D)
         the distance of this projected body to O in a lower-dimensional space.
         Returns None if the line misses the body."""
@@ -71,7 +71,7 @@ class Body(Span):
                     if debug:
                         print(f"(intersect_line_sub) face is degenerate")
                 else:
-                    f = face.intersect_line(line)
+                    f = face.intersect_line(line, permissive=permissive, debug=debug)
                     if debug:
                         print(f"(intersect_line_sub) intersection: {f}")
                     if f is not None:

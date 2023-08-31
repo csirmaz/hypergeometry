@@ -5,14 +5,37 @@ import time
 
 from hypergeometry import Point, Poly, Span, Parallelotope, Simplex, Camera, ObjectFace, Light
 
+
 # Define our world
 
+def make_tree():
+    trunk_color = (.6, .5, 0)
+    leaves_color = (.4, 1., .3)
+    trunk_width = .2
+    trunk_height = 2.5
+    branch_height = 2-1
+    branch_horiz = .5
+
+    boxes = [
+        # trunk
+        [Parallelotope.create_box([0,0,0,-1], [trunk_width, trunk_width, trunk_width, trunk_height]), trunk_color],
+        # horizontal branches
+        [Parallelotope.create_box([0, 0, 0, branch_height],[-branch_horiz, trunk_width, trunk_width, trunk_width]), trunk_color],
+        [Parallelotope.create_box([0, 0, 0, branch_height],[trunk_width, -branch_horiz, trunk_width, trunk_width]), trunk_color],
+        [Parallelotope.create_box([0, 0, 0, branch_height], [trunk_width, trunk_width, -branch_horiz, trunk_width]), trunk_color],
+        [Parallelotope.create_box([trunk_width, trunk_width, trunk_width, branch_height], [branch_horiz, -trunk_width, -trunk_width, trunk_width]), trunk_color],
+        [Parallelotope.create_box([trunk_width, trunk_width, trunk_width, branch_height], [-trunk_width, branch_horiz, -trunk_width, trunk_width]), trunk_color],
+        [Parallelotope.create_box([trunk_width, trunk_width, trunk_width, branch_height], [-trunk_width, -trunk_width, branch_horiz, trunk_width]), trunk_color],
+    ]
+
+    objs = []
+    for box in boxes:
+        objs.extend(ObjectFace.from_triangulated(box[0], color=box[1]))
+
+    return objs
+
 # list of ObjectFace objects
-OBJECTS = ObjectFace.from_triangulated(
-    #Span.default_span(4).rotate([0,2], .9),
-    Parallelotope.create_box([0,0,0,-1], [.6,1,1,2]).rotate([0,2], .9),
-    color=(.6, .5, 0)
-)
+OBJECTS = make_tree()
 
 CAMERAS = [
     Camera(space=Span.default_span(3), focd=-10), # 3D -> 2D
@@ -105,7 +128,7 @@ for picy in range(IMAGE_SIZE): # pixel
                 draw_error(picx, picy)
                 # Run diagnostics
                 print(f"\n>>> ray_3d intersect inconsistency")
-                print(f"  An object whose projection contains the 2D image point does not intersect the 3D ray")
+                print(f"  A 3D object whose 2D projection contains the 2D image point does not intersect the 3D ray")
                 print(f"  picx={picx} picy={picy} relevant obj ix={ix}")
                 print(f"  2d calculation:")
                 print(f"    im_point_2d={im_point_2d}")
@@ -116,6 +139,7 @@ for picy in range(IMAGE_SIZE): # pixel
                 print(f"    ray3d={ray_3d}")
                 print(f"    obj={OBJECTS_PROJ[3][ix]}")
                 tmp = OBJECTS_PROJ[3][ix].intersect_line_sub(ray_3d, debug=True)
+                print(f"    Intersects? {'yes' if tmp else 'no'}")
                 continue
             # d is a value in the context of ray_3d, so this comparison makes sense
             if min_dist3 is None or d < min_dist3:
@@ -129,10 +153,26 @@ for picy in range(IMAGE_SIZE): # pixel
         min_obj = OBJECTS[min_obj_ix3]
         im_point_3d = ray_3d.get_line_point(min_dist3)
         ray_4d = CAMERAS[1].ray(im_point_3d)
-        dist_4d = min_obj.body.intersect_line_sub(ray_4d)
+        dist_4d = min_obj.body.intersect_line_sub(ray_4d, permissive=True)
         if dist_4d is None:
             errors['ray4d_intersect'] += 1
             draw_error(picx, picy)
+            # Run diagnostics
+            print(f"\n>>> ray_4d intersect inconsistency")
+            print(f"  An object's 3D projection intersects the 3D ray, but the 4D object doesn't intersect the 4D ray from the 3D intersection point")
+            print(f"  obj_ix={min_obj_ix3}")
+            print(f"  3d calculation:")
+            print(f"    obj={OBJECTS_PROJ[3][min_obj_ix3]}")
+            print(f"    3d ray={ray_3d} dist={min_dist3}")
+            print(f"    3d image point={im_point_3d}")
+            print(f"    Sanity check: Is the 3d image point inside the 3d object?")
+            tmp = OBJECTS_PROJ[3][min_obj_ix3].includes_sub(im_point_3d, debug=True)
+            print(f"    Includes? {'yes' if tmp else 'no'}")
+            print(f"  4d calculation:")
+            print(f"    4d ray={ray_4d}")
+            print(f"    obj={OBJECTS[min_obj_ix3]}")
+            tmp = OBJECTS[min_obj_ix3].body.intersect_line_sub(ray_4d, permissive=True, debug=True)
+            print(f"    Intersects? {'yes' if tmp else 'no'}")
             continue
         intersect_point_4d = ray_4d.get_line_point(dist_4d)
         img_arr[picy,picx,:] = min_obj.get_color(point=intersect_point_4d, lights=LIGHTS, eye=CAMERAS[1].focal)

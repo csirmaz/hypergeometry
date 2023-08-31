@@ -1,5 +1,6 @@
 
-EPSILON = 1e-7
+EPSILON = 1e-6
+PERMISSIVE_EPS = 2e-4
 
 
 def select_of(num: int, max: int):
