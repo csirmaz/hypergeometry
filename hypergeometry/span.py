@@ -3,7 +3,7 @@ from typing import Union, List, Any, Optional
 Self = Any
 import numpy as np
 
-from hypergeometry.utils import profiling
+from hypergeometry.utils import profiling, EPSILON
 from hypergeometry.point import Point
 from hypergeometry.poly import Poly
 
@@ -20,9 +20,10 @@ class Span:
         assert org.dim() == basis.dim()
         self.org = org
         self.basis = basis
-        self.decomposed = None # Cache of D-1-dimensional faces
-        self.nonzeros = None # Cache
-        self.norm_square = None # Cache
+        self.bounds = None # Cache <np.ndarray>
+        self.decomposed = None # Cache of D-1-dimensional faces <List[Self]>
+        self.nonzeros = None # Cache <Self>
+        self.norm_square = None # Cache <Self>
         # profiling(f'Span.__init__({origin})', self)
 
     @classmethod
@@ -51,7 +52,20 @@ class Span:
         # Should be used for testing only
         profiling('Span.allclose(!)')
         return self.org.allclose(o.org) and self.basis.allclose(o.basis)
-    
+
+    def _get_bounds(self) -> np.ndarray:
+        """Get the bounding box (min/max points) for this Span"""
+        if self.bounds is None:
+            self.bounds = self.basis._get_bounds() + self.org.c
+            self.bounds[0] -= EPSILON
+            self.bounds[1] += EPSILON
+        return self.bounds
+
+    def is_in_bounds(self, p: Point) -> bool:
+        """Returns whether the point is in the bounding box of this Span"""
+        b = self._get_bounds()
+        return np.all((p.c >= b[0]) & (p.c <= b[1]))
+
     def apply_to(self, subject: Union[Point, Poly, Self]) -> Any:
         """Return the absolute coordinates of the point(s) represented relative to this span"""
         if isinstance(subject, Span):

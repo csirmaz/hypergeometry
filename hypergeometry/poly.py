@@ -22,6 +22,7 @@ class Poly:
         self.transpose = None  # caches np.array to save time
         self.inverse = None  # caches np.array to save time
         self.pseudoinverse = None # caches np.array to save time
+        self.bounds = None # caches np.array
         self.degenerate = None # True or False if known to be degenerate
         self.square = None # caches Poly() to save time
         self.norm_square = None # caches Poly() to save time
@@ -86,6 +87,15 @@ class Poly:
             profiling('Poly.pseudoinverse:do', self)
             self.pseudoinverse = np.linalg.pinv(self.p)
         return self.pseudoinverse
+
+    def _get_bounds(self) -> np.ndarray:
+        """Returns a 2-vector poly containing the min and max coordinates"""
+        if self.bounds is None:
+            self.bounds = np.concatenate((
+                np.min(self.p, axis=0, keepdims=True),
+                np.max(self.p, axis=0, keepdims=True)
+            ))
+        return self.bounds
 
     def map(self, lmbd) -> Self:
         """Generate a new Poly object using a lambda function applied to Point objects"""
@@ -217,7 +227,8 @@ class Poly:
             return self.degenerate
         profiling('Poly.is_degenerate:do', self)
         if self.num() <= 1:
-            return False
+            self.degenerate = False
+            return self.degenerate
         if self.independent is not None and not self.independent:
             self.degenerate = True
             return self.degenerate
@@ -363,7 +374,7 @@ class Poly:
         # Repeat here from extend_to_square as restriction cannot be cached
         if permission == "any":
             if self.is_square():
-                profiling('poly.extend_to_norm_square:noop')
+                profiling('Poly.extend_to_norm_square:noop')
                 return self
         else:
             if self.is_square():

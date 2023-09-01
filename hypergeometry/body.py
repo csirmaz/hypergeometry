@@ -42,6 +42,8 @@ class Body(Span):
         Manages projected bodies as well which are potentially degenerate.
         """
         assert self.space_dim() == point.dim()
+        if not self.is_in_bounds(point):
+            return False
         for face in self.get_nondegenerate_parts():
             r = face._includes(point)
             if DEBUG:
@@ -69,7 +71,7 @@ class Body(Span):
 
     def decompose_with_normals(self, diagonal: bool = True) -> Iterable[Self]:
         """Return the faces with their normals pointing outwards from the body"""
-        profiling('body:decompose_with_normals')
+        profiling('Body:decompose_with_normals')
         mid = self.midpoint()
         for face in self.decompose(diagonal=diagonal):
             normal = face.basis.extend_to_norm_square(permission="1").at(-1)
