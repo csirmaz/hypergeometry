@@ -1,11 +1,12 @@
 
 from typing import Union, List, Any, Optional
-Self = Any
 import numpy as np
 
 from hypergeometry.utils import profiling, EPSILON
 from hypergeometry.point import Point
 from hypergeometry.poly import Poly
+
+Self = Any
 
 
 class Span:
@@ -64,6 +65,7 @@ class Span:
     def is_in_bounds(self, p: Point) -> bool:
         """Returns whether the point is in the bounding box of this Span"""
         b = self._get_bounds()
+        # This is much faster than a |...
         return np.all((p.c >= b[0]) & (p.c <= b[1]))
 
     def apply_to(self, subject: Union[Point, Poly, Self]) -> Any:

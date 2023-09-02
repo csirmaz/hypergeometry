@@ -1,11 +1,12 @@
 from typing import Any, Iterable, Union
-Self=Any
 
-from hypergeometry.utils import EPSILON, select_of, loop_many_to
+from hypergeometry.utils import select_of, loop_many_to
 from hypergeometry.point import Point
 from hypergeometry.poly import Poly
 from hypergeometry.span import Span
 from hypergeometry.body import Body
+
+Self = Any
 
 
 class Parallelotope(Body):

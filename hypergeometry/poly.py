@@ -1,10 +1,13 @@
 
 from typing import Iterable, Union, Any, List, Optional
-Self=Any
 import numpy as np
 
-from hypergeometry.utils import NP_TYPE, DETERMINANT_LIMIT, EPSILON, DEBUG, profiling
+import hypergeometry.utils as utils
+from hypergeometry.utils import NP_TYPE, DETERMINANT_LIMIT, EPSILON, profiling
 from hypergeometry.point import Point
+
+Self = Any
+
 
 class Poly:
     """A collection of points or vectors represented as a matrix"""
@@ -233,7 +236,7 @@ class Poly:
             self.degenerate = True
             return self.degenerate
         if self.has_zero_vec():
-            if DEBUG:
+            if utils.DEBUG:
                 print(f"(poly:is_degenerate) Yes as has 0 vector")
             self.degenerate = True
             return self.degenerate
@@ -242,15 +245,15 @@ class Poly:
             # For non-square matrices, we extend first to a square matrix with vectors
             # that are perpendicular to the existing ones
             if not self.is_independent():
-                if DEBUG:
+                if utils.DEBUG:
                     print(f"(poly:is_degenerate) degenerate as not is_independent")
                 self.degenerate = True
                 return self.degenerate
-            if DEBUG:
+            if utils.DEBUG:
                 print(f"(poly:is_degenerate) using extended")
             subj = self.extend_to_norm_square(permission="pos")
         d = np.linalg.det(subj.p)  # determinant
-        if DEBUG:
+        if utils.DEBUG:
             print(f"(poly:is_degenerate) det={d}")
         self.degenerate = (abs(d) < DETERMINANT_LIMIT)
         return self.degenerate
@@ -262,7 +265,7 @@ class Poly:
         # is_degenerate().
         if self.independent is not None:
             profiling('Poly.is_independent:cache', self)
-            if DEBUG:
+            if utils.DEBUG:
                 print(f"(is_independent) cached {self.independent} because {self.independent_reason}")
             return self.independent
 
@@ -303,7 +306,7 @@ class Poly:
         If strict=False, may leave out vectors if they are not linearly independent.
         """
         profiling('Poly.make_basis', self)
-        if DEBUG:
+        if utils.DEBUG:
             print(f"(make_basis) Called with {self}")
         out = [self.at(0).norm()]
         for i in range(1, self.num()):
@@ -358,7 +361,7 @@ class Poly:
             assert n.is_square()
             if n.is_independent():
                 self.square = n
-                if DEBUG:
+                if utils.DEBUG:
                     print(f"(poly:extend_to_square) Extended to {n}")
                 return n
 
@@ -393,7 +396,7 @@ class Poly:
         sq = self.extend_to_square(permission=permission).make_basis()
         r = self.__class__(np.concatenate((self.p, sq.p[self.num():]), axis=0), origin=f'Poly.extend_to_norm_square[{id(self)}]')
         assert r.is_square()
-        if DEBUG:
+        if utils.DEBUG:
             print(f"(poly:extend_to_norm_square) Extended to {r}")
         self.norm_square = r
         return r
@@ -426,7 +429,7 @@ class Poly:
         """
         profiling('Poly.extract_from', self)
         if self.is_square():
-            if DEBUG:
+            if utils.DEBUG:
                 print(f"(poly:extract_from) is_square")
             si = self._get_inverse()
             # Throws exception if not invertible
@@ -437,7 +440,7 @@ class Poly:
                 raise Exception("extract_from: projection is not allowed")
             projected = True
             if self.is_orthonormal():
-                if DEBUG:
+                if utils.DEBUG:
                     print(f"(poly:extract_from) is_orthonormal")
                 si = self._get_transpose()
             else:
@@ -446,15 +449,15 @@ class Poly:
                     # WARNING even if the matrix passes this filter, it may be very narrow (small determinant) making
                     # the results unstable
                     raise Exception("extract_from: not independent")
-                if DEBUG:
+                if utils.DEBUG:
                     print(f"(poly:extract_from) get pseudoinverse")
                 si = self._get_pseudoinverse()
-        if DEBUG:
+        if utils.DEBUG:
             print(f"(poly:extract_from) self={self} si={self.__class__(si)}")
 
         if isinstance(subject, Point):
             r = subject.c @ si
-            if DEBUG:
+            if utils.DEBUG:
                 print(f"(poly:extract_from) result: {Point(r)}")
             if check_result and not projected:
                 # Check reverse as matrices that are close to being degenerate will not give correct result
@@ -464,7 +467,7 @@ class Poly:
 
         if isinstance(subject, Poly):
             r = subject.p @ si
-            if DEBUG:
+            if utils.DEBUG:
                 print(f"(poly:extract_from) result: {Poly(r)}")
             if check_result and not projected:
                 # Check reverse as matrices that are close to being degenerate will not give correct result

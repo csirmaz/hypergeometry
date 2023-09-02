@@ -2,6 +2,7 @@
 from typing import Iterable, List
 import numpy as np
 
+import hypergeometry.utils as utils
 from hypergeometry.utils import NP_TYPE
 from hypergeometry.point import Point
 from hypergeometry.body import Body
@@ -56,8 +57,14 @@ class ObjectFace:
         """Generate a list of ObjectFace objects from a parallelotope by first "triangulating" it into simplices,
         and then taking the D-1-dimensional faces of them"""
         out = []
+        if utils.DEBUG:
+            print(f"(ObjectFace.from_triangulated) Triangulating body {body}")
         for simplex in Simplex.from_parallelotope(body):
             faces = cls.from_body(body=simplex, color=color, surface=surface, diagonal=False)
+            if utils.DEBUG:
+                print(f"(ObjectFace.from_triangulated) Simplex {simplex}; its faces become objects #{len(out)}..#{len(out)+len(faces)-1}")
+                for i, f in enumerate(faces):
+                    print(f"(ObjectFace.from_triangulated) Simplex face, obj #{len(out)+i}: {f}")
             out.extend(faces)
         return out
 

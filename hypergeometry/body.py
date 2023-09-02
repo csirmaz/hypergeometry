@@ -1,9 +1,11 @@
 from typing import Any, Iterable, Union
-Self = Any
 
-from hypergeometry.utils import DEBUG, profiling
+import hypergeometry.utils as utils
+from hypergeometry.utils import profiling
 from hypergeometry.point import Point
 from hypergeometry.span import Span
+
+Self = Any
 
 
 class Body(Span):
@@ -46,7 +48,7 @@ class Body(Span):
             return False
         for face in self.get_nondegenerate_parts():
             r = face._includes(point)
-            if DEBUG:
+            if utils.DEBUG:
                 print(f"(includes_sub) face contains point: {'yes' if r else 'no'}")
             if r:
                 return True
@@ -63,7 +65,7 @@ class Body(Span):
         min_f = None
         for face in self.get_nondegenerate_parts():
             f = face._intersect_line(line, permissive=permissive)
-            if DEBUG:
+            if utils.DEBUG:
                 print(f"(intersect_line_sub) intersection: {f}")
             if f is not None:
                 if min_f is None or f < min_f: min_f = f
