@@ -1,10 +1,13 @@
 from typing import Any, Iterable, Union
+import numpy as np
 
+import hypergeometry.utils as utils
 from hypergeometry.utils import select_of, loop_many_to
 from hypergeometry.point import Point
 from hypergeometry.poly import Poly
 from hypergeometry.span import Span
 from hypergeometry.body import Body
+from hypergeometry.simplex import Simplex
 
 Self = Any
 
@@ -37,11 +40,10 @@ class Parallelotope(Body):
         ]
         return cls(org=Point(org), basis=Poly(basis))
     
-    def decompose(self, diagonal: bool = False) -> Iterable[Self]:
+    def decompose(self) -> Iterable[Self]:
         """Return the n-1-dimensional faces.
         We don't worry about the orientation.
         """
-        assert not diagonal
         if self.decomposed is not None:
             return self.decomposed
         inv = self.basis.scale(-1)
@@ -83,3 +85,37 @@ class Parallelotope(Body):
         """Yield a series of points inside the body"""
         for i in loop_many_to(num=self.my_dim(), max_=density, scaled=True):
             yield self.apply_to(Point(i))
+
+    def split_into_simplices(self) -> Iterable[Simplex]:
+        if self.my_dim() < 2:
+            yield Simplex(org=self.org, basis=self.basis)
+        elif self.my_dim() == 2:
+            yield Simplex(org=self.org, basis=self.basis)
+            yield Simplex(org=self.apply_to(Point([1., 1.])), basis=self.basis.scale(-1))
+        elif self.my_dim() == 3:
+            for conf in [[0,0,0], [1,1,0], [1,0,1], [1,1,0]]:
+                ubasis = np.zeros((self.my_dim(), self.my_dim()))
+                for j in range(self.my_dim()):
+                    ubasis[j, j] = 1 if conf[j] == 0 else -1
+                yield Simplex(
+                    org=self.apply_to(Point(conf)),
+                    basis=self.basis.apply_to(Poly(ubasis))
+                )
+            yield Simplex(
+                org=self.apply_to(Point([1,1,1])),
+                basis=self.basis.apply_to(Poly([[-1,-1,0], [-1,0,-1], [0,-1,-1]]))
+            )
+        else:
+            raise NotImplementedError("split_into_simplices not implemented for higher dimensions")
+
+    def get_triangulated_surface(self):
+        """Return a list of simplices covering the surface of this body"""
+        if utils.DEBUG:
+            print(f"(Parallelotope.get_tri) self={self}")
+        for face, normal in self.decompose_with_normals():
+            if utils.DEBUG:
+                print(f"(Parallelotope.get_tri) face={face}")
+            for simplex in face.split_into_simplices():
+                if utils.DEBUG:
+                    print(f"(Parallelotope.get_tri) simplex={simplex}")
+                yield simplex, normal

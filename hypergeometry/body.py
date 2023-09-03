@@ -13,7 +13,10 @@ class Body(Span):
     those classes and implementing methods that are for bodies but are independent
     of the actual type"""
 
-    def decompose(self, diagonal: bool = True) -> Iterable[Self]:
+    def decompose(self) -> Iterable[Self]:
+        raise NotImplementedError("Implement in subclasses")
+
+    def get_triangulated_surface(self):
         raise NotImplementedError("Implement in subclasses")
 
     def midpoint(self) -> Point:
@@ -71,11 +74,11 @@ class Body(Span):
                 if min_f is None or f < min_f: min_f = f
         return min_f
 
-    def decompose_with_normals(self, diagonal: bool = True) -> Iterable[Self]:
+    def decompose_with_normals(self) -> Iterable[Self]:
         """Return the faces with their normals pointing outwards from the body"""
         profiling('Body:decompose_with_normals')
         mid = self.midpoint()
-        for face in self.decompose(diagonal=diagonal):
+        for face in self.decompose():
             normal = face.basis.extend_to_norm_square(permission="1").at(-1)
             facemid = face.midpoint()
             m = facemid.sub(mid).dot(normal)

@@ -7,7 +7,6 @@ from hypergeometry.point import Point
 from hypergeometry.poly import Poly
 from hypergeometry.span import Span
 from hypergeometry.body import Body
-from hypergeometry.parallelotope import  Parallelotope
 
 Self = Any
 
@@ -19,34 +18,12 @@ class Simplex(Body):
     where 0 <= xi and Sum(xi) <= 1
     """
 
-    @classmethod
-    def from_cube(cls, dim: int) -> Iterable[Self]:
-        """Return simplices arranged on the surface of a unit hypercube, effectively "triangulating" it"""
-        out = []
-        for ix, a in enumerate(loop_natural_bin(dim)):
-            if (ix % 2) == 0:
-                basis = np.zeros((dim, dim))
-                for j in range(dim):
-                    basis[j, j] = 1 if a[j] == 0 else -1
-                out.append(cls(org=Point(a), basis=Poly(basis)))
-        return out
-
-    @classmethod
-    def from_parallelotope(cls, p: Parallelotope) -> Iterable[Self]:
-        """Return simplices arranged on the surface the given parallelotope, effectively "triangulating" it"""
-        return [
-            p.apply_to(simplex)
-            for simplex in cls.from_cube(p.my_dim())
-        ]
-
-    def decompose(self, diagonal: bool = True) -> Iterable[Self]:
+    def decompose(self) -> Iterable[Self]:
         """Return the n-1-dimensional faces of this simplex.
         Note: we don't worry about the orientation"""
         if self.decomposed is not None:
             profiling('Simplex.decompose:cache', self)
-            if diagonal:
-                return self.decomposed
-            return self.decomposed[:-1]
+            return self.decomposed
         profiling('Simplex.decompose:do', self)
         o = [
             Simplex(
@@ -61,9 +38,7 @@ class Simplex(Body):
             origin='Simplex.decompose'
         ))
         self.decomposed = o
-        if diagonal:
-            return self.decomposed
-        return self.decomposed[:-1]
+        return self.decomposed
 
     def midpoint(self) -> Point:
         return self.org.add( self.basis.sum().scale(1./(self.my_dim() + 1.)) )
@@ -170,3 +145,8 @@ class Simplex(Body):
                 print(f"(Simplex:intersect_line) No intersection due to combination")
             return None
         return all_min
+
+    def get_triangulated_surface(self):
+        """Return a list of simplices covering the surface of this body"""
+        for face, normal in self.decompose_with_normals():
+            yield face, normal

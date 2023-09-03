@@ -19,6 +19,8 @@ class Span:
     def __init__(self, org: Point, basis: Poly, origin: Optional[str] = None):
         """`origin` indicates what called the constructor, for debugging"""
         assert org.dim() == basis.dim()
+        assert isinstance(org, Point)
+        assert isinstance(basis, Poly)
         self.org = org
         self.basis = basis
         self.bounds = None # Cache <np.ndarray>

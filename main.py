@@ -32,7 +32,7 @@ def make_tree():
 
     objs = []
     for box in boxes:
-        objs.extend(ObjectFace.from_triangulated(box[0], color=box[1]))
+        objs.extend(ObjectFace.from_body(box[0], color=box[1]))
 
     return objs
 
@@ -40,7 +40,7 @@ def main():
     # list of ObjectFace objects
     OBJECTS = make_tree() # TODO
     utils.DEBUG = True # DEBUG
-    OBJECTS = ObjectFace.from_triangulated(Parallelotope.create_box([0,0,0,0],[1,1,1,2]), color=[1,1,1])
+    OBJECTS = ObjectFace.from_body(Parallelotope.create_box([1,1,1,1],[2,2,2,2]), color=[1,1,1])
     utils.DEBUG = False # DEBUG
 
     CAMERAS = [
@@ -116,8 +116,6 @@ def main():
             else:
                 utils.DEBUG = False
 
-            if utils.DEBUG:
-                print(f"(main) 2d image point: picy={picy} picx={picx}")
             im_point_2d = Point([picx*STEPS[0]-RANGES[0], picy*STEPS[0]-RANGES[0]]) # image point on 2D canvas
 
             # First check which objects are relevant based on their 2D projection
@@ -125,11 +123,12 @@ def main():
             relevant_obj_ix2 = get_relevant_2d(im_point_2d)
             if len(relevant_obj_ix2) == 0:
                 continue
-            if utils.DEBUG:
-                print(f"\n(main) Relevant objects: {relevant_obj_ix2}\n")
 
             # Use ray tracing
             ray_3d = CAMERAS[0].ray(im_point_2d)
+
+            if utils.DEBUG:
+                print(f"\n(main) 2d image point: picy={picy} picx={picx} {im_point_2d} Relevant objects in 2d: {relevant_obj_ix2} 3d ray: {ray_3d}\n")
 
             # Second, get the closest object(s) among the 3D projections along the ray
             relevant_obj_ix3 = {}  # {<object index>: <distance>}
@@ -179,12 +178,13 @@ def main():
                 errors['no_min_obj3'] += 1
                 draw_error(picx, picy)
                 continue
-            if utils.DEBUG:
-                print(f"\n(main) Closest objects on the 3d ray: {relevant_obj_ix3}\n")
 
             # We now need to select the object that is closest to the 4D->3D camera's focal point
             im_point_3d = ray_3d.get_line_point(min_dist3)
             ray_4d = CAMERAS[1].ray(im_point_3d)
+
+            if utils.DEBUG:
+                print(f"\n(main) Closest objects on the 3d ray: {relevant_obj_ix3} Min dist={min_dist3} 3d image point: {im_point_3d} 4d ray: {ray_4d}\n")
 
             min_dist4 = None
             min_obj_ix4 = None
