@@ -2,6 +2,7 @@
 from PIL import Image
 import numpy as np
 import time
+import random
 
 import hypergeometry.utils as utils
 from hypergeometry.utils import EPSILON
@@ -40,7 +41,7 @@ def main():
     # list of ObjectFace objects
     OBJECTS = make_tree() # TODO
     utils.DEBUG = True # DEBUG
-    OBJECTS = ObjectFace.from_body(Parallelotope.create_box([1,1,1,1],[2,2,2,2]), color=[1,1,1])
+    OBJECTS = list(ObjectFace.from_body(Parallelotope.create_box([0,0,1,0],[1,1,2,2]), color=[1,1,1]))
     utils.DEBUG = False # DEBUG
 
     CAMERAS = [
@@ -104,13 +105,13 @@ def main():
 
     print("Processing pixels")
     start_time = time.time()
-    errors = {'ray3d_intersect': 0, 'no_min_obj3': 0, 'ray4d_intersect': 0, 'no_min_obj4': 0}
+    errors = {'ray3d_intersect': 0, 'no_min_obj3': 0, 'ray4d_intersect': 0, 'no_min_obj4': 0, 'multiple_min_obj4': 0}
     percent_done = 0
     for picy in range(IMAGE_SIZE): # pixel
         for picx in range(IMAGE_SIZE): # pixel
 
             # DEBUG
-            if picy==280 and (picx==240 or picx==210 or picx==290):
+            if picy==200 and (picx==201):
                 utils.DEBUG = True
                 print("NOW")
             else:
@@ -134,8 +135,8 @@ def main():
             relevant_obj_ix3 = {}  # {<object index>: <distance>}
             min_dist3 = None
             for ix in relevant_obj_ix2:
-                d = OBJECTS_PROJ[3][ix].intersect_line_sub(ray_3d, permissive=True)
-                if d is None: # DEBUG
+                dist3 = OBJECTS_PROJ[3][ix].intersect_line_sub(ray_3d, permissive=True)
+                if dist3 is None:
                     # We do expect to hit the object with the 3d ray as its 2d projection contained the 2d image point
                     # So this should not happen
                     errors['ray3d_intersect'] += 1
@@ -158,25 +159,30 @@ def main():
                     utils.DEBUG = False
                     continue
                 if utils.DEBUG:
-                    print(f"\n(main) Object {ix} intersects the 3d ray at {d}\n")
+                    print(f"\n(main) Object {ix} intersects the 3d ray at {dist3}\n")
 
                 # d is a value in the context of ray_3d (a multiplier if its vector), so comparisons makes sense
-                if min_dist3 is None or d < min_dist3 + EPSILON:
+                if min_dist3 is None or dist3 < min_dist3 + EPSILON:
                     # We keep all objects whose distance is between the minimum and minimum+EPSILON
                     if min_dist3 is None:
                         assert len(relevant_obj_ix3) == 0
-                        min_dist3 = d
-                        relevant_obj_ix3[ix] = d
-                    elif d < min_dist3:
-                        min_dist3 = d
+                        min_dist3 = dist3
+                        relevant_obj_ix3[ix] = dist3
+                    elif dist3 < min_dist3:
+                        min_dist3 = dist3
                         relevant_obj_ix3 = {ti: td for ti, td in relevant_obj_ix3.items() if td <= min_dist3 + EPSILON}
+                        relevant_obj_ix3[ix] = dist3
                     else:
                         # min_dist3 <= d < min_dist3 + EPSILON
-                        relevant_obj_ix3[ix] = d
+                        relevant_obj_ix3[ix] = dist3
 
             if len(relevant_obj_ix3) == 0:
                 errors['no_min_obj3'] += 1
                 draw_error(picx, picy)
+                # Run diagnostics
+                utils.DEBUG = True
+                print(f"\n>>> No relevant 3d object found picy={picy} picx={picx}")
+                utils.DEBUG = False
                 continue
 
             # We now need to select the object that is closest to the 4D->3D camera's focal point
@@ -186,8 +192,8 @@ def main():
             if utils.DEBUG:
                 print(f"\n(main) Closest objects on the 3d ray: {relevant_obj_ix3} Min dist={min_dist3} 3d image point: {im_point_3d} 4d ray: {ray_4d}\n")
 
+            relevant_obj_ix4 = {}
             min_dist4 = None
-            min_obj_ix4 = None
             for ix, dist3 in relevant_obj_ix3.items():
                 obj = OBJECTS[ix]
                 dist4 = obj.body.intersect_line_sub(ray_4d, permissive=True)
@@ -218,17 +224,35 @@ def main():
                 if utils.DEBUG:
                     print(f"\n(main) Object {ix} intersects the 4d ray at {dist4}\n")
 
-                if min_dist4 is None or dist4 < min_dist4:
-                    min_dist4 = dist4
-                    min_obj_ix4 = ix
+                if min_dist4 is None or dist4 < min_dist4 + EPSILON:
+                    # We keep all objects whose distance is between the minimum and minimum+EPSILON
+                    if min_dist4 is None:
+                        assert len(relevant_obj_ix4) == 0
+                        min_dist4 = dist4
+                        relevant_obj_ix4[ix] = dist4
+                    elif dist4 < min_dist4:
+                        min_dist4 = dist4
+                        relevant_obj_ix4 = {ti: td for ti, td in relevant_obj_ix4.items() if td <= min_dist4 + EPSILON}
+                        relevant_obj_ix4[ix] = dist4
+                    else:
+                        # min_dist4 <= dist4 < min_dist4 + EPSILON
+                        relevant_obj_ix4[ix] = dist4
 
-            if min_obj_ix4 is None:
+            if len(relevant_obj_ix4) == 0:
                 errors['no_min_obj4'] += 1
                 draw_error(picx, picy)
                 continue
 
             if utils.DEBUG:
-                print(f"(main) Closest object in 4d: {min_obj_ix4} dist={min_dist4}")
+                print(f"(main) Closest objects in 4d: {relevant_obj_ix4} dist={min_dist4}")
+
+            if len(relevant_obj_ix4) == 1:
+                min_obj_ix4 = list(relevant_obj_ix4)[0]
+            else:
+                errors['multiple_min_obj4'] += 1
+                # This means there are multiple overlapping objects in the 4D space - get a random one
+                min_obj_ix4 = random.choice(list(relevant_obj_ix4))
+
             intersect_point_4d = ray_4d.get_line_point(min_dist4)
             img_arr[picy,picx,:] = OBJECTS[min_obj_ix4].get_color(point=intersect_point_4d, lights=LIGHTS, eye=CAMERAS[1].focal)
 
@@ -239,9 +263,7 @@ def main():
             remaining_time = spent_time / percent_done * (100 - percent_done)
             print(f"{percent}% {remaining_time:.0f} s remaining, {errors} errors so far")
 
-    bigdot(280,240) # DEBUG
-    bigdot(280,210) # DEBUG
-    bigdot(280,290) # DEBUG
+    bigdot(200,201) # DEBUG
 
     # Save the image
     # img_max = np.max(img_arr, axis=(0,1)) + 1e-7 # per channel
