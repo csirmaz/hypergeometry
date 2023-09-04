@@ -22,11 +22,11 @@ class Body(Span):
     def midpoint(self) -> Point:
         raise NotImplementedError("Implement in subclasses")
 
-    def _includes(self, point: Point) -> bool:
+    def includes_impl(self, point: Point, permission_level: int) -> bool:
         """Returns whether the body includes the point"""
         raise NotImplementedError("Implement in subclasses")
 
-    def _intersect_line(self, line: Span, permissive: bool = False) -> Union[float, None]:
+    def intersect_line_impl(self, line: Span, permissive: bool = False) -> tuple[Union[float, None], float]:
         raise NotImplementedError("Implement in subclasses")
 
     def get_nondegenerate_parts(self) -> Self:
@@ -42,37 +42,43 @@ class Body(Span):
                 else:
                     yield subj
 
-    def includes_sub(self, point: Point) -> bool:
+    def includes_sub(self, point: Point, permission_level: int) -> bool:
         """Returns whether the body contains the point.
         Manages projected bodies as well which are potentially degenerate.
         """
         assert self.space_dim() == point.dim()
-        if not self.is_in_bounds(point):
+        if not self.is_in_bounds(point, permission_level=1):
+            if utils.DEBUG:
+                print("(Body.includes_sub) Not in bounding box")
             return False
         for face in self.get_nondegenerate_parts():
-            r = face._includes(point)
+            r = face.includes_impl(point, permission_level=permission_level)
             if utils.DEBUG:
-                print(f"(includes_sub) face contains point: {'yes' if r else 'no'}")
+                print(f"(Body.includes_sub) face contains point: {'yes' if r else 'no'}")
             if r:
                 return True
         return False
 
-    def intersect_line_sub(self, line: Span, permissive: bool = False) -> Union[float, None]:
+    def intersect_line_sub(self, line: Span, permissive: bool = False) -> tuple[Union[float, None], float]:
         """Return, in multiples of alpha (where line = O + alpha * D)
         the distance of this body to O in a lower-dimensional space.
         Returns None if the line misses the body.
+        Also returns a degree of error; if there is no intersection, how much it missed.
         Manages projected bodies as well which are potentially degenerate.
         """
         assert line.my_dim() == 1
         assert line.space_dim() == self.space_dim()
         min_f = None
+        max_err = 0
         for face in self.get_nondegenerate_parts():
-            f = face._intersect_line(line, permissive=permissive)
+            f, err = face.intersect_line_impl(line, permissive=permissive)
             if utils.DEBUG:
-                print(f"(intersect_line_sub) intersection: {f}")
-            if f is not None:
+                print(f"(intersect_line_sub) intersection: {f} err={err}")
+            if f is None:
+                if err > max_err: max_err = err
+            else:
                 if min_f is None or f < min_f: min_f = f
-        return min_f
+        return min_f, max_err
 
     def decompose_with_normals(self) -> Iterable[Self]:
         """Return the faces with their normals pointing outwards from the body"""

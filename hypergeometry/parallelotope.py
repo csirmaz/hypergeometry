@@ -65,22 +65,6 @@ class Parallelotope(Body):
     def midpoint(self) -> Point:
         return self.org.add( self.basis.sum().scale(.5) )
         
-    def _includes(self, point: Point) -> bool:
-        """Returns whether the point is in the body"""
-        # Can only be used if the body is NOT degenerate
-        # (vectors in basis are independent)
-        raise NotImplementedError()
-        # Should be the same as Simplex.intersect_line with the exception of checking for the sum of the coordinates
-    
-    def _intersect_line(self, line: Span, permissive: bool = False) -> Union[float, None]:
-        """Given a line represented as a Span
-        (P = L0 + alpha Lv), return min(alpha) for which P falls inside
-        this body, that is, the distance of this body from L0.
-        Return None if there is no intersection.
-        """
-        raise NotImplementedError()
-        # Should be the same as Simplex.intersect_line with the exception of checking for the sum of the coordinates
-
     def generate_grid(self, density: int) -> Iterable[Point]:
         """Yield a series of points inside the body"""
         for i in loop_many_to(num=self.my_dim(), max_=density, scaled=True):

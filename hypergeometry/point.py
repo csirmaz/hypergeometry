@@ -12,7 +12,7 @@ class Point:
         self.c = np.array(coords, dtype=NP_TYPE)
     
     def __str__(self):
-        return "Pt(" + ", ".join((f"{x:.3f}" for x in self.c)) + ")"
+        return "Pt(" + ", ".join((f"{x:.6f}" for x in self.c)) + ")"
     
     @classmethod
     def zeros(cls, dim):

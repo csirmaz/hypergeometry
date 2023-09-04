@@ -2,7 +2,8 @@
 from typing import Union, List, Any, Optional
 import numpy as np
 
-from hypergeometry.utils import profiling, EPSILON
+import hypergeometry.utils as utils
+from hypergeometry.utils import profiling, EPSILON, BOUNDINGBOX_EPS
 from hypergeometry.point import Point
 from hypergeometry.poly import Poly
 
@@ -60,13 +61,18 @@ class Span:
         """Get the bounding box (min/max points) for this Span"""
         if self.bounds is None:
             self.bounds = self.basis._get_bounds() + self.org.c
-            self.bounds[0] -= EPSILON
-            self.bounds[1] += EPSILON
+            self.bounds[0] -= BOUNDINGBOX_EPS
+            self.bounds[1] += BOUNDINGBOX_EPS
         return self.bounds
 
-    def is_in_bounds(self, p: Point) -> bool:
+    def is_in_bounds(self, p: Point, permission_level: int) -> bool:
         """Returns whether the point is in the bounding box of this Span"""
+        # This is always an approximation, so we should always be permissive.
+        # We also add an epsilon to the bouns in _get_bounds() for speed
+        assert permission_level == 1
         b = self._get_bounds()
+        if utils.DEBUG:
+            print(f"(Span.is_in_bounds) point={p} box={Poly(b)}")
         # This is much faster than a |...
         return np.all((p.c >= b[0]) & (p.c <= b[1]))
 
@@ -89,7 +95,7 @@ class Span:
         return self.basis.extract_from(subject.sub(self.org))
 
     def get_line_point(self, d: float) -> Point:
-        """Convencience function to get a point on the line represented by the Span"""
+        """Convenience function to get a point on the line represented by the Span"""
         assert self.my_dim() == 1
         return Point(self.org.c + self.basis.p[0] * d)
 

@@ -1,26 +1,44 @@
 
 import numpy as np
 
-EPSILON = 1e-6
-PERMISSIVE_EPS = 2e-4
+EPSILON = 1e-7
+PERMISSIVE_EPS = 1e-7
+BOUNDINGBOX_EPS = 1e-7
 DETERMINANT_LIMIT = 1e-17
 NP_TYPE = np.float_
 DEBUG = False
 
-PROFILING = {}
+_DEBUG_LOCK = 0
+_PROFILING = {}
 
+
+def debug_push():
+    """Enable debugging (and count how many times it has been enabled)"""
+    global DEBUG, _DEBUG_LOCK
+    _DEBUG_LOCK += 1
+    print(f"Debugging entering {_DEBUG_LOCK}")
+    DEBUG = True
+
+def debug_pop():
+    """Undo one debug_push"""
+    global DEBUG, _DEBUG_LOCK
+    _DEBUG_LOCK -= 1
+    print(f"Debugging exiting {_DEBUG_LOCK}")
+    if _DEBUG_LOCK <= 0:
+        DEBUG = False
 
 def profiling(label: str, obj=None):
-    # print(f"PROFILING {label} {'' if obj is None else id(obj)}")
-    if label in PROFILING:
-        PROFILING[label] += 1
+    """Collect how many times this function is called with each label"""
+    # print(f"_PROFILING {label} {'' if obj is None else id(obj)}")
+    if label in _PROFILING:
+        _PROFILING[label] += 1
     else:
-        PROFILING[label] = 1
+        _PROFILING[label] = 1
 
 
 def print_profile():
-    for l in sorted(PROFILING.keys()):
-        print(f"{l}: {PROFILING[l]}")
+    for l in sorted(_PROFILING.keys()):
+        print(f"{l}: {_PROFILING[l]}")
 
 
 def select_of(num: int, max: int):

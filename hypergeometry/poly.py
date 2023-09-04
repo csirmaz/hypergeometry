@@ -34,7 +34,7 @@ class Poly:
 
     def __str__(self):
         o = "" if self.num() <= 1 else "\n    "
-        rows = [ "(" + ", ".join((f"{x:.3f}" for x in r)) + ")" for r in self.p ]
+        rows = [ "(" + ", ".join((f"{x:.6f}" for x in r)) + ")" for r in self.p ]
         o += "Py(" + ",\n       ".join(rows) + ")"
         return o
 
