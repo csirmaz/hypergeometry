@@ -8,3 +8,4 @@ from hypergeometry.parallelotope import Parallelotope
 from hypergeometry.camera import Camera
 from hypergeometry.objectface import ObjectFace
 from hypergeometry.light import Light
+from hypergeometry.renderer import Renderer
