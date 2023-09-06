@@ -3,7 +3,7 @@ from typing import Iterable, Union, Any, List, Optional
 import numpy as np
 
 import hypergeometry.utils as utils
-from hypergeometry.utils import NP_TYPE, DETERMINANT_LIMIT, EPSILON, profiling
+from hypergeometry.utils import NP_TYPE, DETERMINANT_LIMIT, EPSILON, profiling, NotIndependentError, XCheckError
 from hypergeometry.point import Point
 
 Self = Any
@@ -412,7 +412,7 @@ class Poly:
             return subject.__class__(subject.p @ self.p, origin='Poly.apply_to') # <NUM, DIM> @ <bNUM, bDIM> -> <NUM, bDIM>
         raise Exception("apply_to: unknown type")
     
-    def extract_from(self, subject: Union['Poly', Point], allow_projection: bool = False, check_result: bool = False) -> Union['Poly', Point]:
+    def extract_from(self, subject: Union['Poly', Point], allow_projection: bool = False) -> Union['Poly', Point]:
         """
         Represent the point(s) in `subject` relative to the basis in `self`.
         
@@ -459,24 +459,21 @@ class Poly:
             r = subject.c @ si
             if utils.DEBUG:
                 print(f"(poly:extract_from) result: {Point(r)}")
-            if check_result and not projected:
+            if utils.XCHECK and not projected:
                 # Check reverse as matrices that are close to being degenerate will not give correct result
                 if not np.allclose(r @ self.p, subject.c):
-                    raise Exception(f"extract_from: Invalid result det={np.linalg.det(self.p)}")
+                    raise XCheckError(f"extract_from: Invalid result det={np.linalg.det(self.p)}")
             return Point(r, origin='Poly.extract_from')
 
         if isinstance(subject, Poly):
             r = subject.p @ si
             if utils.DEBUG:
                 print(f"(poly:extract_from) result: {Poly(r)}")
-            if check_result and not projected:
+            if utils.XCHECK and not projected:
                 # Check reverse as matrices that are close to being degenerate will not give correct result
                 if not np.allclose(r @ self.p, subject.p):
-                    raise Exception(f"extract_from: Invalid result det={np.linalg.det(self.p)}")
+                    raise XCheckError(f"extract_from: Invalid result det={np.linalg.det(self.p)}")
             return Poly(r, origin='Poly.extract_from')
 
         raise Exception("extract_from: unknown type")
         
-
-class NotIndependentError(Exception):
-    pass

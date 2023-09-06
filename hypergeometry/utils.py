@@ -7,6 +7,7 @@ BOUNDINGBOX_EPS = 1e-7
 DETERMINANT_LIMIT = 1e-17
 NP_TYPE = np.float_
 DEBUG = False
+XCHECK = True
 
 _DEBUG_LOCK = 0
 _PROFILING = {}
@@ -109,3 +110,10 @@ def loop_natural_bin(num):
     for i in range(2**num):
         yield natural_bin(num, i)
 
+
+class NotIndependentError(Exception):
+    pass
+
+
+class XCheckError(Exception):
+    pass

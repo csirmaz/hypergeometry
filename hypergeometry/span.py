@@ -3,7 +3,7 @@ from typing import Union, List, Any, Optional
 import numpy as np
 
 import hypergeometry.utils as utils
-from hypergeometry.utils import profiling, EPSILON, BOUNDINGBOX_EPS
+from hypergeometry.utils import profiling, EPSILON, BOUNDINGBOX_EPS, XCheckError
 from hypergeometry.point import Point
 from hypergeometry.poly import Poly
 
@@ -85,19 +85,24 @@ class Span:
             )
         return self.basis.apply_to(subject).add(self.org)
     
-    def extract_from(self, subject: Union[Point, Poly, Self], debug: bool = False) -> Any:
+    def extract_from(self, subject: Union[Point, Poly, Self], allow_projection: bool = False) -> Any:
         """Represent the point(s) (not vectors!) in `subject` relative to this Span"""
         if isinstance(subject, Span):
             return subject.__class__(
-                org=self.extract_from(subject.org),
-                basis=self.basis.extract_from(subject.basis)  # We don't want to shift vectors
+                org=self.extract_from(subject.org, allow_projection=allow_projection),
+                basis=self.basis.extract_from(subject.basis, allow_projection=allow_projection)  # We don't want to shift vectors
             )
-        return self.basis.extract_from(subject.sub(self.org))
+        return self.basis.extract_from(subject.sub(self.org), allow_projection=allow_projection)
 
-    def get_line_point(self, d: float) -> Point:
+    def get_line_point(self, dist: float) -> Point:
         """Convenience function to get a point on the line represented by the Span"""
         assert self.my_dim() == 1
-        return Point(self.org.c + self.basis.p[0] * d)
+        p = Point(self.org.c + self.basis.p[0] * dist)
+        if utils.XCHECK:
+            s = self.extract_from(p, allow_projection=True)
+            if p.dim() != 1 or abs(p.c[0] - dist) > EPSILON:
+                raise XCheckError("get_line_point reverse calculation failed")
+        return p
 
     def rotate(self, coords: List[int], rad: float, around_origin: bool = False) -> Self:
         new_org = self.org
@@ -141,28 +146,3 @@ class Span:
         )
         self.nonzeros = r
         return r
-
-    def intersect_lines_2d(self, other: Self, test=False):
-        """Return [alpha, beta] for two lines represented as
-        self =  o1 + alpha * d1 (-inf<alpha<inf)
-        other = o2 + beta  * d2 (-inf<beta<inf)
-        where o1 + alpha * d1 = o2 + beta * d2.
-        In a 2D space.
-        Return [None, None] if the lines are parallel.
-        """
-        assert self.space_dim() == 2
-        assert other.space_dim() == 2
-        assert self.my_dim() == 1
-        assert other.my_dim() == 1
-        o = other.org.c - self.org.c # [a,b]
-        dir_self = self.basis.p[0] # [x0,y0]
-        dir_other = other.basis.p[0] # [x1,y1]
-        disc = dir_self[1] * dir_other[0] - dir_self[0] * dir_other[1] # y0*x1 - x0*y1
-        if disc == 0:
-            return (None, None)
-        beta  = (dir_self[0] * o[1] - dir_self[1] * o[0]) / disc # (x0*b - y0*a)/disc
-        alpha = (dir_other[0] * o[1] - dir_other[1] * o[0]) / disc # (x1*b - y1*a)/disc
-        if test:
-            assert self.get_line_point(alpha).allclose(other.get_line_point(beta))
-        return (alpha, beta)
-        

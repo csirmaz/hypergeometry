@@ -170,9 +170,7 @@ def line_test():
     line1 = Span.create_line([1,2], [.2,.3])
     assert line1.get_line_point(2).allclose(Point([1.4, 2.6]))
     line2 = Span.create_line([7,9], [.41,.27])
-    r = line1.intersect_lines_2d(line2, test=True)
-    assert line1.get_line_point(r[0]).allclose(line2.get_line_point(r[1]))
-    
+
     
 def camera_test():
     space = Span(org=Point([10,10,100]), basis=Poly([[0,0,1], [1,0,0], [0,1,0]]))

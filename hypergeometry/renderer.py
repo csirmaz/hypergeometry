@@ -4,7 +4,7 @@ import numpy as np
 import random
 
 import hypergeometry.utils as utils
-from hypergeometry.utils import EPSILON
+from hypergeometry.utils import EPSILON, XCheckError
 from hypergeometry import Point, Poly, Span, Parallelotope, Simplex, Camera, ObjectFace, Light
 
 
@@ -53,6 +53,52 @@ class Renderer:
                 objs.append(ix)
         return objs
 
+    def diagnose_pixel_process(self, *,
+        picy: int,
+        picx: int,
+        obj_ix: int,
+        im_point_2d: Point,
+        ray_3d: Span,
+        min_dist3: float = None,
+        im_point_3d: Point = None,
+        ray_4d: Span = None,
+    ):
+        """Log and verify data and calculations related to processing an image pixel"""
+        utils.debug_push()
+        print(f"  picx={picx} picy={picy} relevant obj ix={obj_ix}")
+
+        print(f"2d calculation:")
+        print(f"    im_point_2d={im_point_2d}")
+        obj2 = self.objects_proj[2][obj_ix]
+        print(f"    2d obj={obj2}")
+        print(f"    Sanity check: does the 2d projection contain the 2d image point?")
+        tmp = obj2.includes_sub(im_point_2d, permission_level=0)
+        print(f"    Includes? {'yes' if tmp else 'no'}")
+        print(f"3d calculation:")
+        print(f"    ray3d={ray_3d}")
+        obj3 = self.objects_proj[3][obj_ix]
+        print(f"    3d obj={obj3}")
+        print(f"    Get the intersection between ray3d and the 3d obj")
+        tmp, tmperr = obj3.intersect_line_sub(ray_3d, permissive=True)
+        print(f"    Intersects? {f'No, err={tmperr}' if tmp is None else f'Yes at {tmp}'}")
+
+        print(f"    3d ray={ray_3d} min dist={min_dist3} obj dist={dist3}")
+        print(f"    3d image point={im_point_3d}")
+        print(f"    Sanity check: Is the 3d image point inside the 3d object?")
+        tmp = self.objects_proj[3][ix].includes_sub(im_point_3d, permission_level=1)
+        print(f"    Includes? {'yes' if tmp else 'no'}")
+
+        print(f"4d calculation:")
+        if min_dist3 is not None: print(f"   min_dist3={min_dist3}")
+        if im_point_3d is not None: print(f"    im_point_3d={im_point_3d}")
+        obj4 = self.objects[obj_ix]
+        print(f"    obj={obj4}")
+        if ray_4d is not None:
+            print(f"    4d ray={ray_4d}")
+            tmp, tmperr = obj4.body.intersect_line_sub(ray_4d, permissive=True)
+            print(f"    Intersects? {f'No, err={tmperr}' if tmp is None else f'Yes at {tmp}'}")
+        utils.debug_pop()
+
     def process_img_pixel(self, picy: int, picx: int):
         im_point_2d = Point([picx * self.img_step - self.img_range, picy * self.img_step - self.img_range])  # image point on 2D canvas
 
@@ -71,33 +117,32 @@ class Renderer:
         relevant_obj_ix3 = {}  # {<object index>: <distance>}
         min_dist3 = None
         for ix in relevant_obj_ix2:
-            dist3, intersect_err3 = self.objects_proj[3][ix].intersect_line_sub(ray_3d, permissive=True)
+            if utils.XCHECK:
+                obj2 = self.objects_proj[2][ix]
+                if not obj2.includes_sub(im_point_2d, permission_level=0):
+                    raise XCheckError("obj2 does not contain im_point_2d")
+
+            obj3 = self.objects_proj[3][ix]
+            dist3, intersect_err3 = obj3.intersect_line_sub(ray_3d, permissive=True)
             if dist3 is None:
                 # We do expect to hit the object with the 3d ray as its 2d projection contained the 2d image point
                 # So this should not happen
                 # IDEA: But if it does happen, don't worry about it if intersect_err3 is small
                 self.errors['ray3d_intersect'] += 1
                 self.draw_error(picx, picy)
-                # Run diagnostics
-                utils.debug_push()
                 print(f"\n>>> ray_3d intersect inconsistency, err={intersect_err3}")
-                print(f"  A 3D object whose 2D projection contains the 2D image point does not intersect the 3D ray")
-                print(f"  picx={picx} picy={picy} relevant obj ix={ix}")
-                print(f"  2d calculation:")
-                print(f"    im_point_2d={im_point_2d}")
-                print(f"    obj={self.objects_proj[2][ix]}")
-                tmp = self.objects_proj[2][ix].includes_sub(im_point_2d, permission_level=0)
-                print(f"    includes? {'yes' if tmp else 'no'}")
-                print(f"  3d calculation:")
-                print(f"    ray3d={ray_3d}")
-                print(f"    obj={self.objects_proj[3][ix]}")
-                tmp, tmperr = self.objects_proj[3][ix].intersect_line_sub(ray_3d)
-                print(f"    Intersects? {'yes' if tmp else 'no'}")
-                print(">>> diagnostics ends")
-                utils.debug_pop()
+                self.diagnose_pixel_process(picy=picy, picx=picx, obj_ix=ix, im_point_2d=im_point_2d, ray_3d=ray_3d)
                 continue
+
             if utils.DEBUG:
-                print(f"\n(main) Object {ix} intersects the 3d ray at dist={dist3} point={ray_3d.get_line_point(dist3)}\n")
+                print(f"\n(main) Object #{ix} intersects the 3d ray at dist={dist3} point={ray_3d.get_line_point(dist3)}\n")
+            if utils.XCHECK:
+                tmp_point = ray_3d.get_line_point(dist3)
+                if not obj3.includes_sub(tmp_point, permission_level=1):
+                    raise XCheckError("obj3 does not contain im_point_3d")
+                tmp_point = ray_3d.get_line_point(dist3 - .1)
+                if not obj3.includes_sub(tmp_point, permission_level=0):
+                    raise XCheckError("obj3 contains a point closer than im_point_3d")
 
             # d is a value in the context of ray_3d (a multiplier if its vector), so comparisons makes sense
             if min_dist3 is None or dist3 < min_dist3 + EPSILON:
@@ -129,37 +174,28 @@ class Renderer:
         relevant_obj_ix4 = {}
         min_dist4 = None
         for ix, dist3 in relevant_obj_ix3.items():
-            obj = self.objects[ix]
-            dist4, intersect_err4 = obj.body.intersect_line_sub(ray_4d, permissive=True)
+            obj4 = self.objects[ix]
+            dist4, intersect_err4 = obj4.body.intersect_line_sub(ray_4d, permissive=True)
             if dist4 is None:
                 # We know the 3D projection of this body contains (roughly, allowing for EPSILON) im_point_3d,
                 # so we don't expect this to happen.
                 # IDEA: But if it does happen, don't worry about it if intersect_err4 is small
                 self.errors['ray4d_intersect'] += 1
                 self.draw_error(picx, picy)
-                # Run diagnostics
-                utils.debug_push()
                 print(f"\n>>> ray_4d intersect inconsistency err={intersect_err4}")
-                print(
-                    f"  An object's 3D projection intersects the 3D ray, but the 4D object doesn't intersect the 4D ray from the 3D intersection point")
-                print(f"  obj_ix={ix}")
-                print(f"  3d calculation:")
-                print(f"    obj={self.objects_proj[3][ix]}")
-                print(f"    3d ray={ray_3d} min dist={min_dist3} obj dist={dist3}")
-                print(f"    3d image point={im_point_3d}")
-                print(f"    Sanity check: Is the 3d image point inside the 3d object?")
-                tmp = self.objects_proj[3][ix].includes_sub(im_point_3d, permission_level=1)
-                print(f"    Includes? {'yes' if tmp else 'no'}")
-                print(f"  4d calculation:")
-                print(f"    4d ray={ray_4d}")
-                print(f"    obj={self.objects[ix]}")
-                tmp, tmperr = self.objects[ix].body.intersect_line_sub(ray_4d, permissive=True)
-                print(f"    Intersects? {'yes' if tmp else 'no'}")
-                print(">>> diagnostics ends")
-                utils.debug_pop()
+                self.diagnose_pixel_process(picy=picy, picx=picx, obj_ix=ix, im_point_2d=im_point_2d, ray_3d=ray_3d,
+                                            min_dist3=min_dist3, im_point_3d=im_point_3d, ray_4d=ray_4d)
                 continue
+
             if utils.DEBUG:
                 print(f"\n(main) Object {ix} intersects the 4d ray at dist={dist4} point={ray_4d.get_line_point(dist4)}\n")
+            if utils.XCHECK:
+                tmp_point = ray_4d.get_line_point(dist4)
+                if not obj4.body.includes_sub(tmp_point, permission_level=1):
+                    raise XCheckError("obj4 does not contain point_4d")
+                tmp_point = ray_4d.get_line_point(dist4 - .1)
+                if not obj4.body.includes_sub(tmp_point, permission_level=0):
+                    raise XCheckError("obj4 contains a point closer than point_4d")
 
             if min_dist4 is None or dist4 < min_dist4 + EPSILON:
                 # We keep all objects whose distance is between the minimum and minimum+EPSILON
@@ -189,9 +225,21 @@ class Renderer:
             self.errors['multiple_min_obj4'] += 1
             # This means there are multiple overlapping objects in the 4D space - get a random one
             min_obj_ix4 = random.choice(list(relevant_obj_ix4))
+            if utils.XCHECK:
+                tmp = random.choice(list(relevant_obj_ix4))
+                if abs(relevant_obj_ix4[min_obj_ix4] - relevant_obj_ix4[tmp]) > EPSILON:
+                    raise XCheckError("selected 4d objects not at same distance")
 
+        min_obj4 = self.objects[min_obj_ix4]
         intersect_point_4d = ray_4d.get_line_point(min_dist4)
-        self.img_arr[picy, picx, :] = self.objects[min_obj_ix4].get_color(point=intersect_point_4d, lights=self.lights, eye=self.cameras[1].focal)
+        if utils.XCHECK:
+            if not min_obj4.body.includes_sub(intersect_point_4d, permission_level=1):
+                raise XCheckError("min_obj4 does not contain intersect_point_4d")
+            tmp_point = ray_4d.get_line_point(min_dist4 - .1)
+            if not min_obj4.body.includes_sub(tmp_point, permission_level=0):
+                raise XCheckError("min_obj4 contains a point closer than intersect_point_4d")
+
+        self.img_arr[picy, picx, :] = min_obj4.get_color(point=intersect_point_4d, lights=self.lights, eye=self.cameras[1].focal)
 
     def save_img(self, filename: str = 'image.png'):
         # Save the image
@@ -221,7 +269,3 @@ class Renderer:
     def draw_error(self, picx: int, picy: int):
         """Mark the image for areas where errors occurred"""
         self.img_arr[picy, picx, :] = [1.1,0,0] if ((picx + picy) % 2) == 0 else [1.1,1.1,0]
-
-
-
-

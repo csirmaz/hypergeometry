@@ -82,7 +82,7 @@ class Body(Span):
 
     def decompose_with_normals(self) -> Iterable[Self]:
         """Return the faces with their normals pointing outwards from the body"""
-        profiling('Body:decompose_with_normals')
+        profiling('Body.decompose_with_normals')
         mid = self.midpoint()
         for face in self.decompose():
             normal = face.basis.extend_to_norm_square(permission="1").at(-1)
