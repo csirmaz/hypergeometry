@@ -4,7 +4,7 @@ import numpy as np
 EPSILON = 1e-7
 PERMISSIVE_EPS = 1e-7
 BOUNDINGBOX_EPS = 1e-7
-DETERMINANT_LIMIT = 1e-17
+DETERMINANT_LIMIT = 1e-16
 NP_TYPE = np.float_
 DEBUG = False
 XCHECK = True

@@ -100,8 +100,8 @@ class Span:
         p = Point(self.org.c + self.basis.p[0] * dist)
         if utils.XCHECK:
             s = self.extract_from(p, allow_projection=True)
-            if p.dim() != 1 or abs(p.c[0] - dist) > EPSILON:
-                raise XCheckError("get_line_point reverse calculation failed")
+            if s.dim() != 1 or abs(s.c[0] - dist) > EPSILON:
+                raise XCheckError(f"get_line_point reverse calculation failed. org dist={dist} extracted={s}")
         return p
 
     def rotate(self, coords: List[int], rad: float, around_origin: bool = False) -> Self:
