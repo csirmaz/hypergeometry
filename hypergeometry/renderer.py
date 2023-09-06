@@ -100,6 +100,7 @@ class Renderer:
         utils.debug_pop()
 
     def process_img_pixel(self, picy: int, picx: int):
+        xcheck_edge_diff = .05
         im_point_2d = Point([picx * self.img_step - self.img_range, picy * self.img_step - self.img_range])  # image point on 2D canvas
 
         # First check which objects are relevant based on their 2D projection
@@ -140,8 +141,8 @@ class Renderer:
                 tmp_point = ray_3d.get_line_point(dist3)
                 if not obj3.includes_sub(tmp_point, permission_level=1):
                     raise XCheckError("obj3 does not contain im_point_3d")
-                tmp_point = ray_3d.get_line_point(dist3 - .1)
-                if not obj3.includes_sub(tmp_point, permission_level=0):
+                tmp_point = ray_3d.get_line_point(dist3 - xcheck_edge_diff)
+                if obj3.includes_sub(tmp_point, permission_level=0):
                     raise XCheckError("obj3 contains a point closer than im_point_3d")
 
             # d is a value in the context of ray_3d (a multiplier if its vector), so comparisons makes sense
@@ -193,8 +194,8 @@ class Renderer:
                 tmp_point = ray_4d.get_line_point(dist4)
                 if not obj4.body.includes_sub(tmp_point, permission_level=1):
                     raise XCheckError("obj4 does not contain point_4d")
-                tmp_point = ray_4d.get_line_point(dist4 - .1)
-                if not obj4.body.includes_sub(tmp_point, permission_level=0):
+                tmp_point = ray_4d.get_line_point(dist4 - xcheck_edge_diff)
+                if obj4.body.includes_sub(tmp_point, permission_level=0):
                     raise XCheckError("obj4 contains a point closer than point_4d")
 
             if min_dist4 is None or dist4 < min_dist4 + EPSILON:
@@ -235,8 +236,8 @@ class Renderer:
         if utils.XCHECK:
             if not min_obj4.body.includes_sub(intersect_point_4d, permission_level=1):
                 raise XCheckError("min_obj4 does not contain intersect_point_4d")
-            tmp_point = ray_4d.get_line_point(min_dist4 - .1)
-            if not min_obj4.body.includes_sub(tmp_point, permission_level=0):
+            tmp_point = ray_4d.get_line_point(min_dist4 - xcheck_edge_diff)
+            if min_obj4.body.includes_sub(tmp_point, permission_level=0):
                 raise XCheckError("min_obj4 contains a point closer than intersect_point_4d")
 
         self.img_arr[picy, picx, :] = min_obj4.get_color(point=intersect_point_4d, lights=self.lights, eye=self.cameras[1].focal)

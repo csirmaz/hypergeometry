@@ -1,8 +1,10 @@
 from typing import Any, Optional
-Self=Any
 import numpy as np
 
 from hypergeometry.utils import NP_TYPE, loop_many_to, EPSILON
+
+Self = Any
+
 
 class Point:
     """Represents a point or vector of arbitrary dimensions"""
@@ -45,7 +47,6 @@ class Point:
      
     def scale(self, x: float) -> Self:
         """Scale the current vector/point by a scalar"""
-        return Point(self.c * x)
         return self.__class__(self.c * x)
      
     def add(self, p: Self) -> Self:

@@ -1,10 +1,12 @@
 from typing import Any, Union
-Self=Any
 
+import hypergeometry.utils as utils
+from hypergeometry.utils import XCheckError
 from hypergeometry.point import Point
 from hypergeometry.poly import Poly
 from hypergeometry.span import Span
 
+Self = Any
 
 class Camera:
     """A camera is defined by a Span spanning the whole space with an orthonormal basis.
@@ -25,7 +27,13 @@ class Camera:
         """Return a line (Span) from the focal point towards point p in the image pane"""
         assert p.dim() == self.image_dim
         ipoint = self.image_pane.apply_to(p) # point on the image pane
-        return Span(org=self.focal, basis=Poly([ipoint.sub(self.focal)]))
+        ray = Span(org=self.focal, basis=Poly([ipoint.sub(self.focal)]))
+        if utils.XCHECK:
+            if not self.focal.allclose(ray.get_line_point(0.)):
+                raise XCheckError("camera ray focal point mismatch")
+            if not ipoint.allclose(ray.get_line_point(1.)):
+                raise XCheckError(f"camera ray target point mismatch. ray={ray} point={ipoint}")
+        return ray
     
     def project(self, p: Union[Point, Poly, Span]) -> Any:
         """Project a point or body in the outer space onto the image pane.
