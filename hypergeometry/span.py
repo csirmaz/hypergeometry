@@ -57,12 +57,29 @@ class Span:
         profiling('Span.allclose(!)')
         return self.org.allclose(o.org) and self.basis.allclose(o.basis)
 
-    def _get_bounds(self) -> np.ndarray:
+    def as_points(self) -> Poly:
+        """Return a Poly that is the set of points of this span"""
+        profiling('Span.as_points')
+        return Poly(
+            np.concatenate(
+                (np.zeros((1, self.space_dim())), self.basis.p),
+                axis=0
+            ) + self.org.c
+        )
+
+    def get_bounds(self, nocache: bool = False) -> np.ndarray:
         """Get the bounding box (min/max points) for this Span"""
-        if self.bounds is None:
-            self.bounds = self.basis._get_bounds() + self.org.c
+        if nocache or self.bounds is None:
+            profiling('Span.get_bounds:do')
+            ps = self.as_points()
+            bx = ps.get_bounds()
+            if utils.DEBUG:
+                print(f"(Span.get_bounds) as_points={ps} box={Poly(bx)}")
+            self.bounds = bx
             self.bounds[0] -= BOUNDINGBOX_EPS
             self.bounds[1] += BOUNDINGBOX_EPS
+        else:
+            profiling('Span.get_bounds:cache')
         return self.bounds
 
     def is_in_bounds(self, p: Point, permission_level: int) -> bool:
@@ -70,8 +87,9 @@ class Span:
         # This is always an approximation, so we should always be permissive.
         # We also add an epsilon to the bouns in _get_bounds() for speed
         assert permission_level == 1
-        b = self._get_bounds()
+        b = self.get_bounds()
         if utils.DEBUG:
+            # self.get_bounds(nocache=True)
             print(f"(Span.is_in_bounds) point={p} box={Poly(b)}")
         # This is much faster than a |...
         return np.all((p.c >= b[0]) & (p.c <= b[1]))

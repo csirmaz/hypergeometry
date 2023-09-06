@@ -91,7 +91,7 @@ class Poly:
             self.pseudoinverse = np.linalg.pinv(self.p)
         return self.pseudoinverse
 
-    def _get_bounds(self) -> np.ndarray:
+    def get_bounds(self) -> np.ndarray:
         """Returns a 2-vector poly containing the min and max coordinates"""
         if self.bounds is None:
             self.bounds = np.concatenate((
@@ -452,6 +452,8 @@ class Poly:
                 if utils.DEBUG:
                     print(f"(poly:extract_from) get pseudoinverse")
                 si = self._get_pseudoinverse()
+                # TODO # Alternative idea is to use extend_to_norm_square() and invert as then we can verify the results
+                # TODO # as we do below
         if utils.DEBUG:
             print(f"(poly:extract_from) self={self} si={self.__class__(si)}")
 

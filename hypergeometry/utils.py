@@ -1,5 +1,6 @@
 
 import numpy as np
+import random
 
 EPSILON = 1e-7
 PERMISSIVE_EPS = 1e-7
@@ -8,9 +9,22 @@ DETERMINANT_LIMIT = 1e-15
 NP_TYPE = np.float_
 DEBUG = False
 XCHECK = True
+THROTTLE_LIMITS = {
+    'xcheck_bbox': 100
+}
 
 _DEBUG_LOCK = 0
 _PROFILING = {}
+_THROTTLE_COUNTER = {k: random.randrange(0, v) for k, v in THROTTLE_LIMITS.items()}
+
+
+def throttle(label):
+    """Return true every Nth call for the given label"""
+    _THROTTLE_COUNTER[label] += 1
+    if _THROTTLE_COUNTER[label] >= THROTTLE_LIMITS[label]:
+        _THROTTLE_COUNTER[label] = 0
+        return True
+    return False
 
 
 def debug_push():

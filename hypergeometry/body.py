@@ -1,6 +1,7 @@
 from typing import Any, Iterable, Union
 
 import hypergeometry.utils as utils
+from hypergeometry.utils import XCheckError
 from hypergeometry.utils import profiling
 from hypergeometry.point import Point
 from hypergeometry.span import Span
@@ -42,14 +43,18 @@ class Body(Span):
                 else:
                     yield subj
 
-    def includes_sub(self, point: Point, permission_level: int) -> bool:
+    def includes_sub(self, point: Point, permission_level: int, use_bounding_box: bool = True) -> bool:
         """Returns whether the body contains the point.
         Manages projected bodies as well which are potentially degenerate.
         """
         assert self.space_dim() == point.dim()
-        if not self.is_in_bounds(point, permission_level=1):
+        if use_bounding_box and not self.is_in_bounds(point, permission_level=1):
             if utils.DEBUG:
                 print("(Body.includes_sub) Not in bounding box")
+            if utils.XCHECK and utils.throttle('xcheck_bbox'):
+                # Check whether we'd be inside the original body
+                if self.includes_sub(point, permission_level=permission_level, use_bounding_box=False):
+                    raise XCheckError(f"Body contains point outside bounding box. body={self} point={point}")
             return False
         for face in self.get_nondegenerate_parts():
             r = face.includes_impl(point, permission_level=permission_level)
