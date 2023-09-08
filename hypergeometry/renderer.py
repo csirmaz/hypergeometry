@@ -65,7 +65,10 @@ class Renderer:
 
     def process_img_pixel(self, picy: int, picx: int):
         xcheck_edge_diff = .05
-        im_point_2d = Point([picx * self.img_step - self.img_range, picy * self.img_step - self.img_range])  # image point on 2D canvas
+        im_point_2d = Point([  # image point on 2D canvas
+            picx * self.img_step - self.img_range,
+            (self.image_size - picy) * self.img_step - self.img_range  # flip Y
+        ])
 
         local_debug = False  # Set to true to log information about computing
 

@@ -131,7 +131,7 @@ class Poly:
 
     def is_zero(self) -> bool:
         """Return whether all coordinates are very close to 0"""
-        return np.all(np.abs(self.c) < EPSILON)
+        return np.all(np.abs(self.p) < EPSILON)
 
     def has_zero_vec(self) -> bool:
         """Return if the poly has a zero vector"""

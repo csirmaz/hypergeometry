@@ -65,7 +65,7 @@ class Body(Span):
                 if utils.XCHECK:
                     # Check if a line to the point intersects with the body
                     tmporg = Point.ones(point.dim()) if point.is_zero() else Point.zeros(point.dim())
-                    tmpf, tmperr = self.intersect_line_sub(line=Span(org=tmporg, basis=Poly([point])), permissive=True)
+                    tmpf, tmperr = self.intersect_line_sub(line=Span(org=tmporg, basis=Poly([point.sub(tmporg)])), permissive=True)
                     if tmpf is None or tmpf > 1.0 + EPSILON:
                         raise XCheckError("A line to a point inside a body does not intersect the body")
                 return True
