@@ -63,67 +63,11 @@ class Renderer:
                 objs.append(ix)
         return objs
 
-    def diagnose_pixel_process(self, *,
-        picy: int,
-        picx: int,
-        obj_ix: int,
-        im_point_2d: Point,
-        ray_3d: Span,
-        min_dist3: float = None,
-        im_point_3d: Point = None,
-        ray_4d: Span = None,
-        debug: bool = True
-    ):
-        """Log and verify data and calculations related to processing an image pixel"""
-        if debug:
-            utils.debug_push()
-        print(f"  picx={picx} picy={picy} relevant obj ix={obj_ix}")
-
-        print(f"2d calculation:")
-        print(f"    im_point_2d={im_point_2d}")
-        obj2 = self.objects_proj[2][obj_ix]
-        print(f"    2d obj [{obj2.genesis()}]={obj2}")
-        print(f"    2d obj as points={obj2.as_points()}")
-        print(f"    Sanity check: does the 2d projection contain the 2d image point?")
-        tmp = obj2.includes_sub(im_point_2d, permission_level=0)
-        print(f"    Includes? {'yes' if tmp else 'no'}")
-        print(f"3d calculation:")
-        print(f"    ray3d={ray_3d}")
-        obj3 = self.objects_proj[3][obj_ix]
-        print(f"    3d obj [{obj3.genesis()}]={obj3}")
-        print(f"    3d obj as points={obj3.as_points()}")
-        print(f"    Get the intersection between ray3d and the 3d obj")
-        tmp, tmperr = obj3.intersect_line_sub(ray_3d, permissive=True)
-        print(f"    Intersects? {f'No, err={tmperr}' if tmp is None else f'Yes at {tmp}'}")
-
-        print(f"    3d ray={ray_3d} min dist={min_dist3}")
-        print(f"    3d image point={im_point_3d}")
-        print(f"    Sanity check: Is the 3d image point inside the 3d object?")
-        tmp = self.objects_proj[3][obj_ix].includes_sub(im_point_3d, permission_level=1)
-        print(f"    Includes? {'yes' if tmp else 'no'}")
-
-        print(f"4d calculation:")
-        if min_dist3 is not None: print(f"   min_dist3={min_dist3}")
-        if im_point_3d is not None: print(f"    im_point_3d={im_point_3d}")
-        obj4 = self.objects[obj_ix]
-        print(f"    4d obj [{obj4.body.genesis()}]={obj4}")
-        print(f"    4d obj as points={obj4.body.as_points()}")
-        if ray_4d is not None:
-            print(f"    4d ray={ray_4d}")
-            tmp, tmperr = obj4.body.intersect_line_sub(ray_4d, permissive=True)
-            print(f"    Intersects? {f'No, err={tmperr}' if tmp is None else f'Yes at {tmp}'}")
-        if debug:
-            utils.debug_pop()
-
     def process_img_pixel(self, picy: int, picx: int):
         xcheck_edge_diff = .05
         im_point_2d = Point([picx * self.img_step - self.img_range, picy * self.img_step - self.img_range])  # image point on 2D canvas
 
         local_debug = False  # Set to true to log information about computing
-        # DEBUG
-        if picy == 200 and (picx == 298 or picx == 310):
-            local_debug = True
-            # self.diagnose_pixel_process(picy=picy, picx=picx, obj_ix=...
 
         # First check which objects are relevant based on their 2D projection
         relevant_obj_ix2 = self.get_relevant_2d(im_point_2d)
@@ -156,8 +100,7 @@ class Renderer:
                 # IDEA: But if it does happen, don't worry about it if intersect_err3 is small
                 self.errors['ray3d_intersect'] += 1
                 self.draw_error(picx, picy)
-                print(f"\n>>> ray_3d intersect inconsistency, err={intersect_err3}")
-                self.diagnose_pixel_process(picy=picy, picx=picx, obj_ix=ix, im_point_2d=im_point_2d, ray_3d=ray_3d)
+                print(f"\n>>> ray_3d intersect inconsistency at picy={picy} picx={picx}, err={intersect_err3}")
                 continue
 
             if utils.DEBUG or local_debug:
@@ -211,9 +154,7 @@ class Renderer:
                 # IDEA: But if it does happen, don't worry about it if intersect_err4 is small
                 self.errors['ray4d_intersect'] += 1
                 self.draw_error(picx, picy)
-                print(f"\n>>> ray_4d intersect inconsistency err={intersect_err4}")
-                self.diagnose_pixel_process(picy=picy, picx=picx, obj_ix=ix, im_point_2d=im_point_2d, ray_3d=ray_3d,
-                                            min_dist3=min_dist3, im_point_3d=im_point_3d, ray_4d=ray_4d)
+                print(f"\n>>> ray_4d intersect inconsistency at picy={picy} picx={picx}, err={intersect_err4}")
                 continue
 
             if utils.DEBUG or local_debug:

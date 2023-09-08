@@ -35,7 +35,8 @@ def make_tree():
 def main():
 
     renderer = Renderer(
-        objects=list(ObjectFace.from_body(Parallelotope.create_box([1.,-.5,-1.,-1.],[1,1,2,2], name='BOX'), color=[1,1,1], use_face_colors=True)),
+        # objects=list(ObjectFace.from_body(Parallelotope.create_box([1.,-.5,-1.,-1.],[1,1,2,2], name='BOX'), color=[1,1,1], use_face_colors=True)),
+        objects=make_tree(),
         cameras=[
             # 3D -> 2D
             # z of (xyz) maps to y' of (x'y') (vertical orientation)
@@ -58,7 +59,7 @@ def main():
         ],
         img_range=2.,
         img_step=.01,
-        dump_objects=True
+        dump_objects=False
     )
 
     print("Processing pixels")
@@ -74,10 +75,6 @@ def main():
             spent_time = time.time() - start_time
             remaining_time = spent_time / percent_done * (100 - percent_done)
             print(f"{percent}% {remaining_time:.0f} s remaining, {renderer.errors} errors so far")
-
-    # DEBUG
-    renderer.bigdot(200, 298, [1,0,0])
-    renderer.bigdot(200, 310, [1,0,0])
 
     # for picy ends
     renderer.save_img()
