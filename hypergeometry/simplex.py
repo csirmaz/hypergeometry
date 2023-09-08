@@ -29,13 +29,17 @@ class Simplex(Body):
             Simplex(
                 org=self.org,
                 basis=self.basis.subset(indices),
-                origin='Simplex.decompose'
-            ) for indices in select_of(num=self.my_dim()-1, max=self.my_dim())
+                parent=self,
+                derivation_method='decompose',
+                name=f"face#{i}"
+            ) for i, indices in enumerate(select_of(num=self.my_dim()-1, max=self.my_dim()))
         ]
         o.append(Simplex(
             org=self.org.add(self.basis.at(0)),
             basis=Poly(self.basis.p[1:] - self.basis.p[0]),
-            origin='Simplex.decompose'
+            parent=self,
+            derivation_method='decompose',
+            name=f"face#{len(o)}"
         ))
         self.decomposed = o
         return self.decomposed
@@ -169,7 +173,11 @@ class Simplex(Body):
             print(f"(Simplex:intersect_line) No intersection due to combination min={all_min} max={all_max}")
         return None, all_min - all_max
 
-    def get_triangulated_surface(self):
+    def get_triangulated_surface(self, add_face_colors: bool = False):
         """Return a list of simplices covering the surface of this body"""
+        color = None
         for face, normal in self.decompose_with_normals():
-            yield face, normal
+            if add_face_colors:
+                color = np.random.rand(3)
+                color /= np.max(color)
+            yield face, normal, color

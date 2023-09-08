@@ -3,7 +3,7 @@ import numpy as np
 
 from hypergeometry.utils import NP_TYPE, loop_many_to, EPSILON
 
-Self = Any
+Self = 'Point'
 
 
 class Point:

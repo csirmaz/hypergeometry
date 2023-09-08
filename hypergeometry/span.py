@@ -17,13 +17,23 @@ class Span:
     where -inf < xi < +inf
     """
     
-    def __init__(self, org: Point, basis: Poly, origin: Optional[str] = None):
+    def __init__(
+            self,
+            org: Point,
+            basis: Poly,
+            parent: Optional[Any] = None,
+            derivation_method: Optional[str] = None,
+            name: Optional[str] = None,
+    ):
         """`origin` indicates what called the constructor, for debugging"""
         assert org.dim() == basis.dim()
         assert isinstance(org, Point)
         assert isinstance(basis, Poly)
         self.org = org
         self.basis = basis
+        self.parent = parent
+        self.derivation_method = derivation_method
+        self.name = name
         self.bounds = None # Cache <np.ndarray>
         self.decomposed = None # Cache of D-1-dimensional faces <List[Self]>
         self.nonzeros = None # Cache <Self>
@@ -44,6 +54,16 @@ class Span:
     def __str__(self):
         return f"Span<org={self.org} basis={self.basis}>"
 
+    def genesis(self) -> str:
+        """Return the name and derivation of this Span"""
+        o = self.name if self.name is not None else '?'
+        if self.parent is not None:
+            o += ' <-'
+            if self.derivation_method is not None:
+                o += self.derivation_method
+            o += '- ' + self.parent.genesis()
+        return o
+
     def space_dim(self) -> int:
         """The dimensionality of the space we are part of"""
         return self.basis.dim()
@@ -58,7 +78,7 @@ class Span:
         return self.org.allclose(o.org) and self.basis.allclose(o.basis)
 
     def as_points(self) -> Poly:
-        """Return a Poly that is the set of points of this span"""
+        """Return a Poly that is the set of vertices of this body"""
         profiling('Span.as_points')
         return Poly(
             np.concatenate(
@@ -99,7 +119,9 @@ class Span:
         if isinstance(subject, Span):
             return subject.__class__(
                 org=self.apply_to(subject.org),
-                basis=self.basis.apply_to(subject.basis) # We don't want to shift vectors
+                basis=self.basis.apply_to(subject.basis), # We don't want to shift vectors
+                parent=subject,
+                derivation_method='apply_to'
             )
         return self.basis.apply_to(subject).add(self.org)
     
@@ -108,7 +130,9 @@ class Span:
         if isinstance(subject, Span):
             return subject.__class__(
                 org=self.extract_from(subject.org, allow_projection=allow_projection),
-                basis=self.basis.extract_from(subject.basis, allow_projection=allow_projection)  # We don't want to shift vectors
+                basis=self.basis.extract_from(subject.basis, allow_projection=allow_projection),  # We don't want to shift vectors
+                parent=subject,
+                derivation_method='extract_from'
             )
         return self.basis.extract_from(subject.sub(self.org), allow_projection=allow_projection)
 
@@ -126,7 +150,12 @@ class Span:
         new_org = self.org
         if around_origin:
             new_org = new_org.rotate(coords=coords, rad=rad)
-        return self.__class__(org=new_org, basis=self.basis.rotate(coords=coords, rad=rad), origin='Span.rotate')
+        return self.__class__(
+            org=new_org,
+            basis=self.basis.rotate(coords=coords, rad=rad),
+            parent=self,
+            derivation_method='rotate'
+        )
     
     def persp_reduce(self, focd: float):
         profiling('Span.persp_reduce')
@@ -134,7 +163,8 @@ class Span:
         return self.__class__(
             org=org_img,
             basis=self.basis.add(self.org).persp_reduce(focd).sub(org_img),
-            origin=f'Span.persp_reduce[{id(self)}]'
+            parent=self,
+            derivation_method='persp_reduce'
         )
     
     def extend_to_norm_square(self, permission: str) -> Self:
@@ -146,7 +176,8 @@ class Span:
         r = self.__class__(
             org=self.org,
             basis=self.basis.extend_to_norm_square(permission=permission),
-            origin=f'Span.extend_to_norm_square[{id(self)}]'
+            parent=self,
+            derivation_method='extend_to_norm_square'
         )
         self.norm_square = r
         return r
@@ -160,7 +191,8 @@ class Span:
         r = self.__class__(
             org=self.org,
             basis=self.basis.get_nonzeros(),
-            origin='Span.get_nonzeros'
+            parent=self,
+            derivation_method='get_nonzeros'
         )
         self.nonzeros = r
         return r

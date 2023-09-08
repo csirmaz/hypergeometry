@@ -7,9 +7,9 @@ PERMISSIVE_EPS = 1e-7
 BOUNDINGBOX_EPS = 1e-7
 DETERMINANT_LIMIT = 1e-15
 NP_TYPE = np.float_
-DEBUG = False
-XCHECK = True
-THROTTLE_LIMITS = {
+DEBUG = False  # Whether to print debug information about calculations. Can also be turned on/off in a nested way using debug_push/debug_pop
+XCHECK = False  # Whether to do extra calculations do cross-check results
+THROTTLE_LIMITS = {  # Settings for the types of throttles, see throttle()
     'xcheck_bbox': 100
 }
 
@@ -34,6 +34,7 @@ def debug_push():
     print(f"Debugging entering {_DEBUG_LOCK}")
     DEBUG = True
 
+
 def debug_pop():
     """Undo one debug_push"""
     global DEBUG, _DEBUG_LOCK
@@ -41,6 +42,7 @@ def debug_pop():
     print(f"Debugging exiting {_DEBUG_LOCK}")
     if _DEBUG_LOCK <= 0:
         DEBUG = False
+
 
 def profiling(label: str, obj=None):
     """Collect how many times this function is called with each label"""
@@ -52,6 +54,7 @@ def profiling(label: str, obj=None):
 
 
 def print_profile():
+    print(f"PROFILING DATA")
     for l in sorted(_PROFILING.keys()):
         print(f"{l}: {_PROFILING[l]}")
 

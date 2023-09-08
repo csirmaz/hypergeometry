@@ -89,6 +89,8 @@ class Poly:
         if self.pseudoinverse is None:
             profiling('Poly.pseudoinverse:do', self)
             self.pseudoinverse = np.linalg.pinv(self.p)
+        else:
+            profiling('Poly.pseudoinverse:cache')
         return self.pseudoinverse
 
     def get_bounds(self) -> np.ndarray:
@@ -208,9 +210,9 @@ class Poly:
     def is_orthonormal(self) -> bool:
         """Returns if the collection of vectors is an orthonormal basis (vectors are unit length and pairwise perpendicular)"""
         if self.orthonormal is not None:
-            profiling('Poly:is_orthonormal:cache', self)
+            profiling('Poly.is_orthonormal:cache', self)
             return self.orthonormal
-        profiling('Poly:is_orthonormal:do', self)
+        profiling('Poly.is_orthonormal:do', self)
         dots = self.p @ self.p.transpose()
         identity = np.identity(self.num())
         if dots.shape == identity.shape and np.allclose(dots, identity):

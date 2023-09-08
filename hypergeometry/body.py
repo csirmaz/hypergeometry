@@ -1,9 +1,10 @@
 from typing import Any, Iterable, Union
 
 import hypergeometry.utils as utils
-from hypergeometry.utils import XCheckError
+from hypergeometry.utils import XCheckError, EPSILON
 from hypergeometry.utils import profiling
 from hypergeometry.point import Point
+from hypergeometry.poly import Poly
 from hypergeometry.span import Span
 
 Self = Any
@@ -17,7 +18,7 @@ class Body(Span):
     def decompose(self) -> Iterable[Self]:
         raise NotImplementedError("Implement in subclasses")
 
-    def get_triangulated_surface(self):
+    def get_triangulated_surface(self, add_face_colors: bool = False):
         raise NotImplementedError("Implement in subclasses")
 
     def midpoint(self) -> Point:
@@ -61,6 +62,11 @@ class Body(Span):
             if utils.DEBUG:
                 print(f"(Body.includes_sub) face contains point: {'yes' if r else 'no'}")
             if r:
+                if utils.XCHECK:
+                    # Check if a line to the point intersects with the body
+                    tmpf, tmperr = self.intersect_line_sub(line=Span(org=Point.zeros(point.dim()), basis=Poly([point])), permissive=True)
+                    if tmpf is None or tmpf > 1.0 + EPSILON:
+                        raise XCheckError("A line to a point inside a body does not intersect the body")
                 return True
         return False
 
@@ -85,7 +91,7 @@ class Body(Span):
                 if min_f is None or f < min_f: min_f = f
         return min_f, max_err
 
-    def decompose_with_normals(self) -> Iterable[Self]:
+    def decompose_with_normals(self) -> Iterable[tuple[Self, Point]]:
         """Return the faces with their normals pointing outwards from the body"""
         profiling('Body.decompose_with_normals')
         mid = self.midpoint()

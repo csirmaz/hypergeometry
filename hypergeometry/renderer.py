@@ -1,7 +1,6 @@
 
 from PIL import Image
 import numpy as np
-import random
 
 import hypergeometry.utils as utils
 from hypergeometry.utils import EPSILON, XCheckError
@@ -15,21 +14,24 @@ class Renderer:
         cameras: list[Camera],
         lights: list[Light],
         img_range: float,
-        img_step: float
+        img_step: float,
+        dump_objects: bool = False,
     ):
         self.objects = objects
-        self.cameras = cameras
+        self.cameras = cameras  # First 3D->2D, then 4D->3D, etc.
         self.lights = lights
         self.img_range = img_range # 2D coords [-a..a] x [-a..a]
         self.img_step = img_step
-        self.errors = {'ray3d_intersect': 0, 'no_min_obj3': 0, 'ray4d_intersect': 0, 'no_min_obj4': 0, 'multiple_min_obj4': 0}
+        self.errors = {'ray3d_intersect': 0, 'no_min_obj3': 0, 'ray4d_intersect': 0, 'no_min_obj4': 0}
         self.objects_proj = None  # dict[<dimension>: list[Span]]
+        self.objects_dist = None  # dict[<object_ix>: float]
 
         self.image_size = int(self.img_range / self.img_step * 2.)
         print(f"Image size: {self.image_size}")
         self.img_arr = np.zeros((self.image_size, self.image_size, 3))
 
-        self.prepare_projections()
+        self.prepare_projections(dump_objects=dump_objects)
+        self.prepare_distances()
 
     def prepare_projections(self, dump_objects: bool = False):
         self.objects_proj = {x: [] for x in range(self.objects[0].body.space_dim())}
@@ -37,13 +39,21 @@ class Renderer:
             bdy = obj.body
             dim = bdy.space_dim()
             if dump_objects:
-                print(f"Object #{ix} dim={dim}: {obj}")
+                print(f"Object #{ix} dim={dim}: [{obj.body.genesis()}] {obj}")
             for camera in self.cameras[::-1]:
                 bdy = camera.project(bdy)
                 dim -= 1
                 self.objects_proj[dim].append(bdy)
                 if dump_objects:
                     print(f"  Projection of #{ix} to dim={dim}: {bdy}")
+
+    def prepare_distances(self):
+        """Get the distances of objects to the last (highest dimensional) camera's focal point"""
+        self.objects_dist = {}
+        focal = self.cameras[-1].focal
+        for ix, obj in enumerate(self.objects):
+            midp = obj.body.midpoint()
+            self.objects_dist[ix] = midp.sub(focal).length()
 
     def get_relevant_2d(self, im_point_2d: Point) -> list[int]:
         """Get a list of object indices relevant for a given 2D point"""
@@ -62,46 +72,58 @@ class Renderer:
         min_dist3: float = None,
         im_point_3d: Point = None,
         ray_4d: Span = None,
+        debug: bool = True
     ):
         """Log and verify data and calculations related to processing an image pixel"""
-        utils.debug_push()
+        if debug:
+            utils.debug_push()
         print(f"  picx={picx} picy={picy} relevant obj ix={obj_ix}")
 
         print(f"2d calculation:")
         print(f"    im_point_2d={im_point_2d}")
         obj2 = self.objects_proj[2][obj_ix]
-        print(f"    2d obj={obj2}")
+        print(f"    2d obj [{obj2.genesis()}]={obj2}")
+        print(f"    2d obj as points={obj2.as_points()}")
         print(f"    Sanity check: does the 2d projection contain the 2d image point?")
         tmp = obj2.includes_sub(im_point_2d, permission_level=0)
         print(f"    Includes? {'yes' if tmp else 'no'}")
         print(f"3d calculation:")
         print(f"    ray3d={ray_3d}")
         obj3 = self.objects_proj[3][obj_ix]
-        print(f"    3d obj={obj3}")
+        print(f"    3d obj [{obj3.genesis()}]={obj3}")
+        print(f"    3d obj as points={obj3.as_points()}")
         print(f"    Get the intersection between ray3d and the 3d obj")
         tmp, tmperr = obj3.intersect_line_sub(ray_3d, permissive=True)
         print(f"    Intersects? {f'No, err={tmperr}' if tmp is None else f'Yes at {tmp}'}")
 
-        print(f"    3d ray={ray_3d} min dist={min_dist3} obj dist={dist3}")
+        print(f"    3d ray={ray_3d} min dist={min_dist3}")
         print(f"    3d image point={im_point_3d}")
         print(f"    Sanity check: Is the 3d image point inside the 3d object?")
-        tmp = self.objects_proj[3][ix].includes_sub(im_point_3d, permission_level=1)
+        tmp = self.objects_proj[3][obj_ix].includes_sub(im_point_3d, permission_level=1)
         print(f"    Includes? {'yes' if tmp else 'no'}")
 
         print(f"4d calculation:")
         if min_dist3 is not None: print(f"   min_dist3={min_dist3}")
         if im_point_3d is not None: print(f"    im_point_3d={im_point_3d}")
         obj4 = self.objects[obj_ix]
-        print(f"    obj={obj4}")
+        print(f"    4d obj [{obj4.body.genesis()}]={obj4}")
+        print(f"    4d obj as points={obj4.body.as_points()}")
         if ray_4d is not None:
             print(f"    4d ray={ray_4d}")
             tmp, tmperr = obj4.body.intersect_line_sub(ray_4d, permissive=True)
             print(f"    Intersects? {f'No, err={tmperr}' if tmp is None else f'Yes at {tmp}'}")
-        utils.debug_pop()
+        if debug:
+            utils.debug_pop()
 
     def process_img_pixel(self, picy: int, picx: int):
         xcheck_edge_diff = .05
         im_point_2d = Point([picx * self.img_step - self.img_range, picy * self.img_step - self.img_range])  # image point on 2D canvas
+
+        local_debug = False  # Set to true to log information about computing
+        # DEBUG
+        if picy == 200 and (picx == 298 or picx == 310):
+            local_debug = True
+            # self.diagnose_pixel_process(picy=picy, picx=picx, obj_ix=...
 
         # First check which objects are relevant based on their 2D projection
         relevant_obj_ix2 = self.get_relevant_2d(im_point_2d)
@@ -111,8 +133,11 @@ class Renderer:
         # Use ray tracing
         ray_3d = self.cameras[0].ray(im_point_2d)
 
-        if utils.DEBUG:
-            print(f"\n(main) 2d image point: picy={picy} picx={picx} {im_point_2d} Relevant objects in 2d: {relevant_obj_ix2} 3d ray: {ray_3d}\n")
+        if utils.DEBUG or local_debug:
+            print(f"\n(main) 2d image point: picy={picy} picx={picx} {im_point_2d} Relevant objects in 2d: {relevant_obj_ix2}")
+            print(f"(main) 3d ray: {ray_3d}")
+            for ix in relevant_obj_ix2:
+                print(f"    #{ix} = {self.objects_proj[2][ix].genesis()}")
 
         # Second, get the closest object(s) among the 3D projections along the ray
         relevant_obj_ix3 = {}  # {<object index>: <distance>}
@@ -135,8 +160,8 @@ class Renderer:
                 self.diagnose_pixel_process(picy=picy, picx=picx, obj_ix=ix, im_point_2d=im_point_2d, ray_3d=ray_3d)
                 continue
 
-            if utils.DEBUG:
-                print(f"\n(main) Object #{ix} intersects the 3d ray at dist={dist3} point={ray_3d.get_line_point(dist3)}\n")
+            if utils.DEBUG or local_debug:
+                print(f"(main) Object #{ix} intersects the 3d ray at dist={dist3} point={ray_3d.get_line_point(dist3)}")
             if utils.XCHECK:
                 tmp_point = ray_3d.get_line_point(dist3)
                 if not obj3.includes_sub(tmp_point, permission_level=1):
@@ -169,8 +194,11 @@ class Renderer:
         im_point_3d = ray_3d.get_line_point(min_dist3)
         ray_4d = self.cameras[1].ray(im_point_3d)
 
-        if utils.DEBUG:
-            print(f"\n(main) Closest objects on the 3d ray: {relevant_obj_ix3} Min dist={min_dist3} 3d image point: {im_point_3d} 4d ray: {ray_4d}\n")
+        if utils.DEBUG or local_debug:
+            print(f"(main) Closest objects on the 3d ray: {relevant_obj_ix3} Min dist={min_dist3} 3d image point: {im_point_3d}")
+            print(f"(main) 4d ray: {ray_4d}")
+            for ix in relevant_obj_ix3:
+                print(f"    #{ix} = {self.objects_proj[3][ix].genesis()}")
 
         relevant_obj_ix4 = {}
         min_dist4 = None
@@ -188,8 +216,8 @@ class Renderer:
                                             min_dist3=min_dist3, im_point_3d=im_point_3d, ray_4d=ray_4d)
                 continue
 
-            if utils.DEBUG:
-                print(f"\n(main) Object {ix} intersects the 4d ray at dist={dist4} point={ray_4d.get_line_point(dist4)}\n")
+            if utils.DEBUG or local_debug:
+                print(f"(main) Object #{ix} intersects the 4d ray at dist={dist4} point={ray_4d.get_line_point(dist4)}")
             if utils.XCHECK:
                 tmp_point = ray_4d.get_line_point(dist4)
                 if not obj4.body.includes_sub(tmp_point, permission_level=1):
@@ -217,19 +245,27 @@ class Renderer:
             self.draw_error(picx, picy)
             return
 
-        if utils.DEBUG:
+        if utils.DEBUG or local_debug:
             print(f"(main) Closest objects in 4d: {relevant_obj_ix4} dist={min_dist4}")
+            for ix in relevant_obj_ix4:
+                print(f"    #{ix} = {self.objects[ix].body.genesis()} focal dist={self.objects_dist[ix]}")
 
         if len(relevant_obj_ix4) == 1:
             min_obj_ix4 = list(relevant_obj_ix4)[0]
         else:
-            self.errors['multiple_min_obj4'] += 1
-            # This means there are multiple overlapping objects in the 4D space - get a random one
-            min_obj_ix4 = random.choice(list(relevant_obj_ix4))
-            if utils.XCHECK:
-                tmp = random.choice(list(relevant_obj_ix4))
-                if abs(relevant_obj_ix4[min_obj_ix4] - relevant_obj_ix4[tmp]) > EPSILON:
-                    raise XCheckError("selected 4d objects not at same distance")
+            # This means there are multiple overlapping objects in the 4D space - this can happen when the 3D surface objects
+            # in 4D space share a 2D face, which they can do. We want the object that obscures the other one just next to the 2D face,
+            # but we can't assess that at the 2D face. As a proxy we use the distance of the midpoint to the camera's focal point,
+            # as we're dealing with simplices.
+            min_focal_dist = None
+            min_obj_ix4 = None
+            for ix in relevant_obj_ix4.keys():
+                if min_focal_dist is None or min_focal_dist > self.objects_dist[ix]:
+                    min_focal_dist = self.objects_dist[ix]
+                    min_obj_ix4 = ix
+
+        if utils.DEBUG or local_debug:
+            print(f"(main) Chosen object: #{min_obj_ix4} [{self.objects[min_obj_ix4].body.genesis()}]")
 
         min_obj4 = self.objects[min_obj_ix4]
         intersect_point_4d = ray_4d.get_line_point(min_dist4)

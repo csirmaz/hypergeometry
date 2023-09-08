@@ -35,16 +35,30 @@ def make_tree():
 def main():
 
     renderer = Renderer(
-        objects=list(ObjectFace.from_body(Parallelotope.create_box([1.,-.5,-1.,-1.],[1,1,2,2]), color=[1,1,1])),
+        objects=list(ObjectFace.from_body(Parallelotope.create_box([1.,-.5,-1.,-1.],[1,1,2,2], name='BOX'), color=[1,1,1], use_face_colors=True)),
         cameras=[
-            Camera(space=Span.default_span(3), focd=-10), # 3D -> 2D
-            Camera(space=Span.default_span(4), focd=-10), # 4D -> 3D
+            # 3D -> 2D
+            # z of (xyz) maps to y' of (x'y') (vertical orientation)
+            Camera(space=Span(org=Point([0, 0, 0]),
+                              basis=Poly([[1, 0, 0], # to x
+                                          [0, 0, 1], # to y
+                                          [0, 1, 0]  # normal
+                                          ])), focd=-10),
+            # 4D -> 3D
+            # w of (xyzw) maps to z' of (x'y'z') (vertical orientation)
+            Camera(space=Span(org=Point([0, 0, 0, 0]),
+                              basis=Poly([[1, 0, 0, 0], # to x'
+                                          [0, 1, 0, 0], # to y'
+                                          [0, 0, 0, 1], # to z'
+                                          [0, 0, 1, 0]  # normal
+                                          ])), focd=-10),
         ],
         lights=[
             Light(Point([0,-5,0,-5]))
         ],
         img_range=2.,
-        img_step=.01
+        img_step=.01,
+        dump_objects=True
     )
 
     print("Processing pixels")
@@ -60,6 +74,10 @@ def main():
             spent_time = time.time() - start_time
             remaining_time = spent_time / percent_done * (100 - percent_done)
             print(f"{percent}% {remaining_time:.0f} s remaining, {renderer.errors} errors so far")
+
+    # DEBUG
+    renderer.bigdot(200, 298, [1,0,0])
+    renderer.bigdot(200, 310, [1,0,0])
 
     # for picy ends
     renderer.save_img()

@@ -36,11 +36,14 @@ class ObjectFace:
             cls,
             body: Body,
             color = (1,1,1),
-            surface: str = 'matte'
+            surface: str = 'matte',
+            use_face_colors: bool = False
         ) -> Iterable[Self]:
         """Generate a list of ObjectFace objects from the faces of `body`"""
         assert body.my_dim() == body.space_dim()
-        for face, normal in body.get_triangulated_surface():
+        for face, normal, face_color in body.get_triangulated_surface(add_face_colors=use_face_colors):
+            if use_face_colors:
+                color = face_color
             yield cls(body=face, normal=normal, color=color, surface=surface)
 
     def get_color(self, point: Point, lights: List[Light], eye: Point, ambient: float = .2):
