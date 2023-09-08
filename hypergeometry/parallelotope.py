@@ -86,11 +86,17 @@ class Parallelotope(Body):
             yield Simplex(org=self.org, basis=self.basis, parent=self, derivation_method='split2d', name='split#0')
             yield Simplex(org=self.apply_to(Point([1., 1.])), basis=self.basis.scale(-1), parent=self, derivation_method='split2d', name='split#1')
         elif self.my_dim() == 3:
-            split_conf = [[0,0,0], [1,1,0], [1,0,1], [1,1,0]]
+            # These are the vertices of the cube that are to be used for the tetrahedra that align with the edges
+            #    DC hg
+            #    AB ef
+            split_conf = [[0,0,0],  # -> 0,0,0 | 1,0,0  0,1,0  0,0,1    A|BDe
+                          [1,1,0],  # -> 1,1,0 | 0,1,0  1,0,0  1,1,1    C|DBg
+                          [1,0,1],  # -> 1,0,1 | 0,0,1  1,1,1  1,0,0    f|egB
+                          [0,1,1]]  # -> 0,1,1 | 1,1,1  0,0,1  0,1,0    h|geD
             for ic, conf in enumerate(split_conf):
                 ubasis = np.zeros((self.my_dim(), self.my_dim()))
                 for j in range(self.my_dim()):
-                    ubasis[j, j] = 1 if conf[j] == 0 else -1
+                    ubasis[j, j] = 1 if conf[j] == 0 else -1  # Note: the basis contains the difference
                 yield Simplex(
                     org=self.apply_to(Point(conf)),
                     basis=self.basis.apply_to(Poly(ubasis)),
@@ -98,6 +104,7 @@ class Parallelotope(Body):
                     derivation_method='split3d',
                     name=f"split#{ic}"
                 )
+            # The internal simplex: 1,1,1 | 0,0,1  0,1,0  1,0,0    g|eDB
             yield Simplex(
                 org=self.apply_to(Point([1,1,1])),
                 basis=self.basis.apply_to(Poly([[-1,-1,0], [-1,0,-1], [0,-1,-1]])),
