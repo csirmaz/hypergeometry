@@ -62,10 +62,9 @@ class Point:
         return self.c.shape[0]
 
     def is_zero(self) -> bool:
-        """Return all coordinates are very close to 0"""
+        """Return whether all coordinates are very close to 0"""
         return np.all(np.abs(self.c) < EPSILON)
-        # return self.allclose(Point.zeros(self.dim()))
-    
+
     def length(self) -> float:
         """Return the length of the vector"""
         return np.sqrt(np.square(self.c).sum())

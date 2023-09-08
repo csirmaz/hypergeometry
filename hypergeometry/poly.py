@@ -129,6 +129,10 @@ class Poly:
         """Return a Poly formed from the vectors at the given indices"""
         return self.__class__(self.p[indices], origin=f'Poly.subset[{id(self)}]')
 
+    def is_zero(self) -> bool:
+        """Return whether all coordinates are very close to 0"""
+        return np.all(np.abs(self.c) < EPSILON)
+
     def has_zero_vec(self) -> bool:
         """Return if the poly has a zero vector"""
         return np.any(np.all(np.abs(self.p) < EPSILON, axis=1))
@@ -324,7 +328,9 @@ class Poly:
             if v is not None:
                 out.append(v.norm())
         r = self.__class__(out, origin=f'Poly.make_basis[{id(self)}]')
-        assert r.is_orthonormal() # DEBUG
+        if utils.XCHECK:
+            if not r.is_orthonormal():
+                raise XCheckError("Output of make_basis not orthonormal")
         return r
 
     def extend_to_square(self, permission: str) -> Self:

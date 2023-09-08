@@ -81,6 +81,8 @@ class Simplex(Body):
         profiling('Simplex.intersect_line')
         assert self.space_dim() == line.space_dim()
         assert line.my_dim() == 1
+        if line.basis.is_zero():
+            raise Exception("Line has 0 direction")
         my_dims = self.my_dim()
         basis_span = self.extend_to_norm_square(permission="any")
         line2 = basis_span.extract_from(line)
