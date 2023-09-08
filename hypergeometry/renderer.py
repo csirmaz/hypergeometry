@@ -34,6 +34,7 @@ class Renderer:
         self.prepare_distances()
 
     def prepare_projections(self, dump_objects: bool = False):
+        """Prepare the 3D and 2D projections of the objects"""
         self.objects_proj = {x: [] for x in range(self.objects[0].body.space_dim())}
         for ix, obj in enumerate(self.objects):
             bdy = obj.body

@@ -5,10 +5,51 @@ import hypergeometry.utils as utils
 from hypergeometry.utils import NP_TYPE
 from hypergeometry.point import Point
 from hypergeometry.poly import Poly
-from hypergeometry.span import Span
-from hypergeometry.body import Body
 from hypergeometry.simplex import Simplex
 from hypergeometry.parallelotope import Parallelotope
+from hypergeometry.objectface import ObjectFace
+
+
+def scatter_sphere(*,
+                   org: list[float],
+                   rad: float,
+                   n: int,
+                   size: float,
+                   color: tuple[float, float, float],
+                   name: Optional[str] = None
+) -> list[ObjectFace]:
+    """Create a scatter of D-1-dimensional simplices in a sphere.
+    The results can be used directly (as they are the same dimensions as faces)
+    without triangulation.
+
+    org: Coordinates of the center of the sphere
+    rad: The size of the sphere
+    n: The number of simplices
+    size: The size of a simplex
+    """
+    space_dim = len(org)
+    orgp = Point(org)
+    out = []
+    for i in range(n):
+        while True:
+            mid = Point(np.random.rand(space_dim) * 2. - 1.)  # Relative to the origin
+            if mid.length() <= 1.: break
+        mid = mid.scale(rad).add(orgp)
+        basis = (np.random.rand(space_dim - 1, space_dim) * 2. - 1.) * size
+        while True:
+            basis = Poly(basis)
+            if not basis.is_degenerate(): break
+        normal = basis.extend_to_norm_square(permission="1").at(-1)
+        simplex = Simplex(
+            org=mid,
+            basis=basis
+        )
+        out.append(ObjectFace(
+            body=simplex,
+            normal=normal,
+            color=color
+        ))
+    return out
 
 
 def create_box(org, sizes, name: Optional[str] = None) -> Parallelotope:
@@ -41,7 +82,7 @@ def create_prism(*,
     the dimensions of the containing space.
 
     org: The coordinates of the midpoint of the base
-    i: The index of the dimension (roughly) along which the prism extends
+    i: The index of the dimension (roughly) along which the prism extends (0-indexed)
     r: The thickness of the prism (radius)
     length: Either provide length or dest. The length (height) of the prism
     dest: Either provide length or dest. The midpoint of the second base
