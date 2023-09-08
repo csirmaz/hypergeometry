@@ -1,11 +1,10 @@
-from typing import Any, Iterable, Optional
+from typing import Any, Iterable
 import numpy as np
 
 import hypergeometry.utils as utils
 from hypergeometry.utils import select_of, loop_many_to, profiling
 from hypergeometry.point import Point
 from hypergeometry.poly import Poly
-from hypergeometry.span import Span
 from hypergeometry.body import Body
 from hypergeometry.simplex import Simplex
 
@@ -22,24 +21,6 @@ class Parallelotope(Body):
     (while this applies to simplices).
     """
 
-    @classmethod
-    def create_box(cls, org, sizes, name: Optional[str] = None) -> Self:
-        """Create a box (hyperrectangle) whose edges are parallel to the axes.
-        If a coordinate in `sizes` is None, it is left out, resulting in a lower-
-        dimensional box.
-        E.g. create_box([0,0,0], [1,None,2]) ->
-            basis= 1,0,0
-                   0,0,2
-        """
-        dim = len(org)
-        assert dim == len(sizes)
-        basis = [
-            [(v if x == ix else 0) for x in range(dim)] 
-            for ix, v in enumerate(sizes)
-            if v is not None
-        ]
-        return cls(org=Point(org), basis=Poly(basis), name=name)
-    
     def decompose(self) -> Iterable[Self]:
         """Return the n-1-dimensional faces.
         We don't worry about the orientation.

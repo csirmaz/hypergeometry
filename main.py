@@ -2,31 +2,43 @@
 import time
 
 import hypergeometry.utils as utils
-from hypergeometry.utils import EPSILON
-from hypergeometry import Point, Poly, Span, Parallelotope, Simplex, Camera, ObjectFace, Light, Renderer
+from hypergeometry import Point, Poly, Span, Parallelotope, Camera, ObjectFace, Light, Renderer
+from hypergeometry.generators import create_prism
 
 def make_tree():
     trunk_color = (.6, .5, 0)
     leaves_color = (.4, 1., .3)
-    trunk_width = .2
+    trunk_radius = .2
     trunk_height = 2.5
-    branch_height = 2-1
-    branch_horiz = .5
+    branch_height = 1.5
+    branch_horiz = 1.2
+    branch_vert=.8
+    branch_radius = .1
 
-    boxes = [
-        # trunk
-        [Parallelotope.create_box([0,0,0,-1], [trunk_width, trunk_width, trunk_width, trunk_height]), trunk_color],
-        # horizontal branches
-        [Parallelotope.create_box([0, 0, 0, branch_height],[-branch_horiz, trunk_width, trunk_width, trunk_width]), trunk_color],
-        [Parallelotope.create_box([0, 0, 0, branch_height],[trunk_width, -branch_horiz, trunk_width, trunk_width]), trunk_color],
-        [Parallelotope.create_box([0, 0, 0, branch_height], [trunk_width, trunk_width, -branch_horiz, trunk_width]), trunk_color],
-        [Parallelotope.create_box([trunk_width, trunk_width, trunk_width, branch_height], [branch_horiz, -trunk_width, -trunk_width, trunk_width]), trunk_color],
-        [Parallelotope.create_box([trunk_width, trunk_width, trunk_width, branch_height], [-trunk_width, branch_horiz, -trunk_width, trunk_width]), trunk_color],
-        [Parallelotope.create_box([trunk_width, trunk_width, trunk_width, branch_height], [-trunk_width, -trunk_width, branch_horiz, trunk_width]), trunk_color],
+    pr = create_prism
+
+    objs4 = [
+        [pr(org=[0,0,0,0], i=3, r=trunk_radius, length=trunk_height, name='trunk'), trunk_color],
+
+        [pr(org=[0, 0, 0, branch_height], i=0, r=branch_radius, length=branch_horiz, name='branch1'), trunk_color],
+        [pr(org=[0, 0, 0, branch_height], i=1, r=branch_radius, length=branch_horiz, name='branch1'), trunk_color],
+        [pr(org=[0, 0, 0, branch_height], i=2, r=branch_radius, length=branch_horiz, name='branch1'), trunk_color],
+        [pr(org=[0, 0, 0, branch_height], i=3, r=branch_radius, length=branch_horiz, name='branch1'), trunk_color],
+        [pr(org=[0, 0, 0, branch_height], i=0, r=branch_radius, length=-branch_horiz, name='branch1'), trunk_color],
+        [pr(org=[0, 0, 0, branch_height], i=1, r=branch_radius, length=-branch_horiz, name='branch1'), trunk_color],
+        [pr(org=[0, 0, 0, branch_height], i=2, r=branch_radius, length=-branch_horiz, name='branch1'), trunk_color],
+        [pr(org=[0, 0, 0, branch_height], i=3, r=branch_radius, length=-branch_horiz, name='branch1'), trunk_color],
+
+        [pr(org=[branch_horiz, 0, 0, branch_height], i=3, r=branch_radius, length=branch_vert, name='branch2'), trunk_color],
+        [pr(org=[0, branch_horiz, 0, branch_height], i=3, r=branch_radius, length=branch_vert, name='branch2'), trunk_color],
+        [pr(org=[0, 0, branch_horiz, branch_height], i=3, r=branch_radius, length=branch_vert, name='branch2'), trunk_color],
+        [pr(org=[-branch_horiz, 0, 0, branch_height], i=3, r=branch_radius, length=branch_vert, name='branch2'), trunk_color],
+        [pr(org=[0, -branch_horiz, 0, branch_height], i=3, r=branch_radius, length=branch_vert, name='branch2'), trunk_color],
+        [pr(org=[0, 0, -branch_horiz, branch_height], i=3, r=branch_radius, length=branch_vert, name='branch2'), trunk_color],
     ]
 
     objs = []
-    for box in boxes:
+    for box in objs4:
         objs.extend(ObjectFace.from_body(box[0], color=box[1]))
 
     return objs
@@ -35,7 +47,6 @@ def make_tree():
 def main():
 
     renderer = Renderer(
-        # objects=list(ObjectFace.from_body(Parallelotope.create_box([1.,-.5,-1.,-1.],[1,1,2,2], name='BOX'), color=[1,1,1], use_face_colors=True)),
         objects=make_tree(),
         cameras=[
             # 3D -> 2D
