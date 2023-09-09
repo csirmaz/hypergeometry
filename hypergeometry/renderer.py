@@ -227,6 +227,7 @@ class Renderer:
         # Save the image
         # img_max = np.max(img_arr, axis=(0,1)) + 1e-7 # per channel
         img_max = np.max(self.img_arr) + 1e-7 # overall max
+        if img_max < 1.: img_max = 1.
         img_data = (self.img_arr / img_max * 255.).astype('B')
         img = Image.fromarray(img_data, mode="RGB") # https://pillow.readthedocs.io/en/stable/handbook/concepts.html#concept-modes
         img.save(filename)

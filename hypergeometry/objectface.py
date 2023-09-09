@@ -1,5 +1,5 @@
 
-from typing import Iterable, List, Any
+from typing import Iterable, List, Any, Optional
 import numpy as np
 
 import hypergeometry.utils as utils
@@ -19,7 +19,7 @@ class ObjectFace:
             self,
             body: Body,
             normal: Point,
-            color = (1,1,1),
+            color: tuple[float, float, float] = (1., 1., 1.),
             surface: str = 'matte',
         ):
         assert body.my_dim() == body.space_dim() - 1
@@ -27,6 +27,7 @@ class ObjectFace:
         self.body = body
         self.color = np.array(color, dtype=NP_TYPE)
         self.normal = normal
+        self.surface = surface
 
     def __str__(self):
         return f"{{body={self.body} normal={self.normal} bodyclass={self.body.__class__}}}"
@@ -35,7 +36,7 @@ class ObjectFace:
     def from_body(
             cls,
             body: Body,
-            color = (1,1,1),
+            color: tuple[float, float, float] = (1., 1., 1.),
             surface: str = 'matte',
             use_face_colors: bool = False
         ) -> Iterable[Self]:
@@ -55,4 +56,12 @@ class ObjectFace:
         m = to_light.dot(self.normal)
         if m < 0: m = 0
         return self.color * (ambient + (1 - ambient)*m)
-        
+
+    def rotate(self, coords: List[int], rad: float, around: Optional[Point] = None) -> Self:
+        return self.__class__(
+            body=self.body.rotate(coords=coords, rad=rad, around=around),
+            normal=self.normal.rotate(coords=coords, rad=rad),
+            color=self.color,
+            surface=self.surface
+        )
+

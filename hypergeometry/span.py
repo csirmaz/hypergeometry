@@ -146,10 +146,11 @@ class Span:
                 raise XCheckError(f"get_line_point reverse calculation failed. org dist={dist} extracted={s}")
         return p
 
-    def rotate(self, coords: List[int], rad: float, around_origin: bool = False) -> Self:
-        new_org = self.org
-        if around_origin:
-            new_org = new_org.rotate(coords=coords, rad=rad)
+    def rotate(self, coords: List[int], rad: float, around: Optional[Point] = None) -> Self:
+        if around is None:
+            new_org = self.org.rotate(coords=coords, rad=rad)
+        else:
+            new_org = self.org.sub(around).rotate(coords=coords, rad=rad).add(around)
         return self.__class__(
             org=new_org,
             basis=self.basis.rotate(coords=coords, rad=rad),

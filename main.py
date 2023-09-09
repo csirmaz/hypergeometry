@@ -24,11 +24,11 @@ def make_tree():
     branch_horiz = 1.2
     branch_vert=.8
     branch_radius = .1
-    leaf_size = .1
-    mid_foliage_radius = 1.
-    mid_foliage_num = 100
-    side_foliage_radius = .5
-    side_foliage_num = 40
+    leaf_size = .15
+    mid_foliage_radius = 1.3
+    mid_foliage_num = 150
+    side_foliage_radius = .8
+    side_foliage_num = 80
 
     pr = create_prism
 
@@ -56,15 +56,20 @@ def make_tree():
     for box in objs4:
         objs.extend(ObjectFace.from_body(box[0], color=box[1]))
 
-    objs.extend(scatter_sphere(org=[0, 0, 0, tree_offset + trunk_height], rad=mid_foliage_radius, n=mid_foliage_num, size=leaf_size, color=leaf_color))
+    if True:
+        objs.extend(scatter_sphere(org=[0, 0, 0, tree_offset + trunk_height], rad=mid_foliage_radius, n=mid_foliage_num, size=leaf_size, color=leaf_color))
 
-    objs.extend(scatter_sphere(org=[branch_horiz, 0, 0, branch_height + branch_vert], rad=side_foliage_radius, n=side_foliage_num, size=leaf_size, color=leaf_color))
-    objs.extend(scatter_sphere(org=[0, branch_horiz, 0, branch_height + branch_vert], rad=side_foliage_radius, n=side_foliage_num, size=leaf_size, color=leaf_color))
-    objs.extend(scatter_sphere(org=[0, 0, branch_horiz, branch_height + branch_vert], rad=side_foliage_radius, n=side_foliage_num, size=leaf_size, color=leaf_color))
+        objs.extend(scatter_sphere(org=[branch_horiz, 0, 0, branch_height + branch_vert], rad=side_foliage_radius, n=side_foliage_num, size=leaf_size, color=leaf_color))
+        objs.extend(scatter_sphere(org=[0, branch_horiz, 0, branch_height + branch_vert], rad=side_foliage_radius, n=side_foliage_num, size=leaf_size, color=leaf_color))
+        objs.extend(scatter_sphere(org=[0, 0, branch_horiz, branch_height + branch_vert], rad=side_foliage_radius, n=side_foliage_num, size=leaf_size, color=leaf_color))
 
-    objs.extend(scatter_sphere(org=[-branch_horiz, 0, 0, branch_height + branch_vert], rad=side_foliage_radius, n=side_foliage_num, size=leaf_size, color=leaf_color))
-    objs.extend(scatter_sphere(org=[0, -branch_horiz, 0, branch_height + branch_vert], rad=side_foliage_radius, n=side_foliage_num, size=leaf_size, color=leaf_color))
-    objs.extend(scatter_sphere(org=[0, 0, -branch_horiz, branch_height + branch_vert], rad=side_foliage_radius, n=side_foliage_num, size=leaf_size, color=leaf_color))
+        objs.extend(scatter_sphere(org=[-branch_horiz, 0, 0, branch_height + branch_vert], rad=side_foliage_radius, n=side_foliage_num, size=leaf_size, color=leaf_color))
+        objs.extend(scatter_sphere(org=[0, -branch_horiz, 0, branch_height + branch_vert], rad=side_foliage_radius, n=side_foliage_num, size=leaf_size, color=leaf_color))
+        objs.extend(scatter_sphere(org=[0, 0, -branch_horiz, branch_height + branch_vert], rad=side_foliage_radius, n=side_foliage_num, size=leaf_size, color=leaf_color))
+
+    objs = [o.rotate(coords=[0, 1], rad=.4) for o in objs]
+    objs = [o.rotate(coords=[0, 2], rad=.3) for o in objs]
+    objs = [o.rotate(coords=[2, 3], rad=.1) for o in objs]
 
     return objs
 
