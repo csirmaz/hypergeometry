@@ -102,15 +102,20 @@ class Span:
             profiling('Span.get_bounds:cache')
         return self.bounds
 
-    def is_in_bounds(self, p: Point, permission_level: int) -> bool:
+    def is_in_bounds(self, p: Point) -> bool:
         """Returns whether the point is in the bounding box of this Span"""
         # This is always an approximation, so we should always be permissive.
         # We also add an epsilon to the bouns in _get_bounds() for speed
-        assert permission_level == 1
         b = self.get_bounds()
-        if utils.DEBUG:
-            # self.get_bounds(nocache=True)
-            print(f"(Span.is_in_bounds) point={p} box={Poly(b)}")
+        pcoords = p.c
+        for i in range(p.dim()):
+            if pcoords[i] < b[0][i]: return False
+            if pcoords[i] > b[1][i]: return False
+        return True
+
+    def is_in_bounds2(self, p: Point) -> bool:
+        """Alternative implementation of is_in_bounds"""
+        b = self.get_bounds()
         # This is much faster than a |...
         return np.all((p.c >= b[0]) & (p.c <= b[1]))
 

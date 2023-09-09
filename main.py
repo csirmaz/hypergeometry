@@ -8,7 +8,7 @@ def sample():
     #org = Point.zeros(4)
     #basis = Poly.from_identity(4)
     #body = Parallelotope(org=org, basis=basis)
-    body = create_prism(org=[0,0,0,0], i=3, r=.01, length=.01)
+    body = create_prism(org=[0,0,0,0], i=3, r=.1, length=.1)
     return list(ObjectFace.from_body(body=body, color=(1,1,0)))
 
 
@@ -75,7 +75,7 @@ def make_tree():
 def main():
 
     renderer = Renderer(
-        objects=(sample() * 10 ), #make_tree(),
+        objects=sample(), #make_tree(),
         cameras=[
             # 3D -> 2D
             # z of (xyz) maps to y' of (x'y') (vertical orientation)
@@ -109,7 +109,7 @@ def main():
     print(f"Errors encountered: {renderer.errors}")
 
 
-import cProfile
-cProfile.run('main()')
-#main()
+#import cProfile
+#cProfile.run('main()')
+main()
 utils.print_profile()

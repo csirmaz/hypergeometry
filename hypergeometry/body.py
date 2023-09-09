@@ -49,14 +49,22 @@ class Body(Span):
         Manages projected bodies as well which are potentially degenerate.
         """
         assert self.space_dim() == point.dim()
-        if use_bounding_box and not self.is_in_bounds(point, permission_level=1):
+        if use_bounding_box and not self.is_in_bounds(point):
             if utils.DEBUG:
                 print("(Body.includes_sub) Not in bounding box")
             if utils.XCHECK and utils.throttle('xcheck_bbox'):
+                # Check against other implementation
+                if self.is_in_bounds2(point):
+                    raise XCheckError("is_in_bounds and is_in_bounds2 do not agree")
                 # Check whether we'd be inside the original body
                 if self.includes_sub(point, permission_level=permission_level, use_bounding_box=False):
                     raise XCheckError(f"Body contains point outside bounding box. body={self} point={point}")
+            profiling('Body.includes_sub:out_of_bounding_box')
             return False
+        profiling('Body.includes_sub:in_bounding_box')
+        if utils.XCHECK and utils.throttle('xcheck_bbox'):
+            if not self.is_in_bounds2(point):
+                raise XCheckError("is_in_bounds and is_in_bounds2 do not agree")
         for face in self.get_nondegenerate_parts():
             r = face.includes_impl(point, permission_level=permission_level)
             if utils.DEBUG:
