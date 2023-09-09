@@ -1,4 +1,6 @@
+from typing import Optional
 
+import time
 from PIL import Image
 import numpy as np
 
@@ -74,6 +76,20 @@ class Renderer:
                 for pj in range(0, pi):
                     y1, x1 = self.point2pix(points.at(pj))
                     self.draw_line(y0=y0, x0=x0, y1=y1, x1=x1, c=color)
+
+    def raytracing(self, frame: Optional[str] = '1/1'):
+        start_time = time.time()
+        percent_done = 0
+        for picy in range(self.image_size): # pixel
+            for picx in range(self.image_size): # pixel
+                self.process_img_pixel(picy=picy, picx=picx)
+            percent = int(picy / self.image_size * 100 + .5)
+            if percent > percent_done:
+                percent_done = percent
+                spent_time = time.time() - start_time
+                remaining_time = spent_time / percent_done * (100 - percent_done)
+                print(f"Frame {frame} {percent}% {remaining_time:.0f} s remaining, {self.errors} errors so far")
+        print(f"Frame {frame} done in {(time.time() - start_time):.1f} s")
 
     def process_img_pixel(self, picy: int, picx: int):
         xcheck_edge_diff = .05
@@ -242,7 +258,6 @@ class Renderer:
         img_data = (self.img_arr / img_max * 255.).astype('B')
         img = Image.fromarray(img_data, mode="RGB") # https://pillow.readthedocs.io/en/stable/handbook/concepts.html#concept-modes
         img.save(filename)
-
 
     def coord2pix(self, c, flip=False):
         """Convert a coordinate to a pixel index"""

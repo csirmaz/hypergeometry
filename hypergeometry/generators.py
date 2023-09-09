@@ -16,6 +16,7 @@ def scatter_sphere(*,
                    n: int,
                    size: float,
                    color: tuple[float, float, float],
+                   surface: str = "translucent",
                    name: Optional[str] = None
 ) -> list[ObjectFace]:
     """Create a scatter of D-1-dimensional simplices in a sphere.
@@ -48,7 +49,8 @@ def scatter_sphere(*,
         out.append(ObjectFace(
             body=simplex,
             normal=normal,
-            color=color
+            color=color,
+            surface=surface
         ))
     return out
 

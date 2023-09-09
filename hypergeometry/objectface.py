@@ -13,6 +13,11 @@ Self = Any
 class ObjectFace:
     """This class represents a D-1-dimensional face of a D-dimensional object in a D-dimensional space.
     For simplicity, objects and therefore faces are all simplices (and parallelotopes).
+
+    body: A Body (in practice, a Simplex) representing the face
+    normal: the normal vector of the face
+    color: An RGB tuple
+    surface: "matte" | "translucent"
     """
     
     def __init__(
@@ -49,14 +54,22 @@ class ObjectFace:
 
     def get_color(self, point: Point, lights: List[Light], eye: Point, ambient: float = .2):
         """Determine the color of a particular point on this ObjectFace"""
-        assert len(lights) == 1
-        to_light = lights[0].p.sub(point).norm()
         to_eye = eye.sub(point).norm()
-        
-        # Matte calculation
-        m = to_light.dot(self.normal)
-        if m < 0: m = 0
-        return self.color * (ambient + (1 - ambient)*m)
+        illumination = 0
+        for light in lights:
+            to_light = light.p.sub(point).norm()
+
+            if self.surface == 'matte':
+                m = to_light.dot(self.normal)
+                if m < 0: m = 0
+            elif self.surface == 'translucent':
+                m = abs(to_light.dot(self.normal))
+            else:
+                raise Exception(f"Unknown surface type {self.surface}")
+
+            illumination += m
+
+        return self.color * (ambient + (1 - ambient)*illumination)
 
     def rotate(self, coords: List[int], rad: float, around: Optional[Point] = None) -> Self:
         return self.__class__(
