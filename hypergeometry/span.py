@@ -113,12 +113,6 @@ class Span:
             if pcoords[i] > b[1][i]: return False
         return True
 
-    def is_in_bounds2(self, p: Point) -> bool:
-        """Alternative implementation of is_in_bounds"""
-        b = self.get_bounds()
-        # This is much faster than a |...
-        return np.all((p.c >= b[0]) & (p.c <= b[1]))
-
     def apply_to(self, subject: Union[Point, Poly, Self]) -> Any:
         """Return the absolute coordinates of the point(s) represented relative to this span"""
         if isinstance(subject, Span):

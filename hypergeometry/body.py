@@ -53,18 +53,12 @@ class Body(Span):
             if utils.DEBUG:
                 print("(Body.includes_sub) Not in bounding box")
             if utils.XCHECK and utils.throttle('xcheck_bbox'):
-                # Check against other implementation
-                if self.is_in_bounds2(point):
-                    raise XCheckError("is_in_bounds and is_in_bounds2 do not agree")
                 # Check whether we'd be inside the original body
                 if self.includes_sub(point, permission_level=permission_level, use_bounding_box=False):
                     raise XCheckError(f"Body contains point outside bounding box. body={self} point={point}")
-            profiling('Body.includes_sub:out_of_bounding_box')
+            # profiling('Body.includes_sub:out_of_bounding_box')
             return False
-        profiling('Body.includes_sub:in_bounding_box')
-        if utils.XCHECK and utils.throttle('xcheck_bbox'):
-            if not self.is_in_bounds2(point):
-                raise XCheckError("is_in_bounds and is_in_bounds2 do not agree")
+        # profiling('Body.includes_sub:in_bounding_box')
         for face in self.get_nondegenerate_parts():
             r = face.includes_impl(point, permission_level=permission_level)
             if utils.DEBUG:
