@@ -48,6 +48,7 @@ class ObjectFace:
             yield cls(body=face, normal=normal, color=color, surface=surface)
 
     def get_color(self, point: Point, lights: List[Light], eye: Point, ambient: float = .2):
+        """Determine the color of a particular point on this ObjectFace"""
         assert len(lights) == 1
         to_light = lights[0].p.sub(point).norm()
         to_eye = eye.sub(point).norm()

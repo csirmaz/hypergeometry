@@ -39,6 +39,7 @@ def scatter_sphere(*,
         while True:
             basis = Poly(basis)
             if not basis.is_degenerate(): break
+        # The normal will point in one or another direction randomly
         normal = basis.extend_to_norm_square(permission="1").at(-1)
         simplex = Simplex(
             org=mid,

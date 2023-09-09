@@ -224,7 +224,7 @@ class Renderer:
         self.img_arr[picy, picx, :] = min_obj4.get_color(point=intersect_point_4d, lights=self.lights, eye=self.cameras[1].focal)
 
     def save_img(self, filename: str = 'image.png'):
-        # Save the image
+        """Save the image into a PNG file"""
         # img_max = np.max(img_arr, axis=(0,1)) + 1e-7 # per channel
         img_max = np.max(self.img_arr) + 1e-7 # overall max
         if img_max < 1.: img_max = 1.
