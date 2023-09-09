@@ -103,19 +103,22 @@ def main():
         dump_objects=False
     )
 
-    print("Processing pixels")
-    start_time = time.time()
-    percent_done = 0
-    for picy in range(renderer.image_size): # pixel
-        for picx in range(renderer.image_size): # pixel
-            renderer.process_img_pixel(picy=picy, picx=picx)
-        # for picx ends
-        percent = int(picy / renderer.image_size * 100 + .5)
-        if percent > percent_done:
-            percent_done = percent
-            spent_time = time.time() - start_time
-            remaining_time = spent_time / percent_done * (100 - percent_done)
-            print(f"{percent}% {remaining_time:.0f} s remaining, {renderer.errors} errors so far")
+    renderer.draw_wireframe()
+
+    if False:
+        print("Processing pixels")
+        start_time = time.time()
+        percent_done = 0
+        for picy in range(renderer.image_size): # pixel
+            for picx in range(renderer.image_size): # pixel
+                renderer.process_img_pixel(picy=picy, picx=picx)
+            # for picx ends
+            percent = int(picy / renderer.image_size * 100 + .5)
+            if percent > percent_done:
+                percent_done = percent
+                spent_time = time.time() - start_time
+                remaining_time = spent_time / percent_done * (100 - percent_done)
+                print(f"{percent}% {remaining_time:.0f} s remaining, {renderer.errors} errors so far")
 
     # for picy ends
     renderer.save_img()

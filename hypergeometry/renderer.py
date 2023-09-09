@@ -64,6 +64,17 @@ class Renderer:
                 objs.append(ix)
         return objs
 
+    def draw_wireframe(self):
+        """Draw a fast wireframe image"""
+        for obj_ix, body in enumerate(self.objects_proj[2]):
+            color = self.objects[obj_ix].color
+            points = body.as_points()
+            for pi in range(points.num()):
+                y0, x0 = self.point2pix(points.at(pi))
+                for pj in range(0, pi):
+                    y1, x1 = self.point2pix(points.at(pj))
+                    self.draw_line(y0=y0, x0=x0, y1=y1, x1=x1, c=color)
+
     def process_img_pixel(self, picy: int, picx: int):
         xcheck_edge_diff = .05
         im_point_2d = Point([  # image point on 2D canvas
@@ -233,21 +244,41 @@ class Renderer:
         img.save(filename)
 
 
-    def coord2pix(self, c):
+    def coord2pix(self, c, flip=False):
         """Convert a coordinate to a pixel index"""
         return int((c + self.img_range) / self.img_step + .5)
 
-    def plot(self, x: float, y: float, c):
-        """Set the color in the image at the given coordinates"""
-        self.img_arr[self.coord2pix(y), self.coord2pix(x), :] = c
+    def point2pix(self, p: Point) -> tuple[int, int]:
+        """Convert a 2D point to image coordinates (y, x)"""
+        return (
+            self.image_size - self.coord2pix(p.c[1]),  # picy
+            self.coord2pix(p.c[0])  # picx
+        )
 
-    def bigdot(self, y: int, x: int, c=(1,0,0)):
+    def draw_line(self, *, y0: int, x0: int, y1: int, x1: int, c=(1,1,1,)):
+        """Draw a line on the canvas"""
+        if abs(y1 - y0) > abs(x1 - x0):
+            for y in range(y0, y1, 1 if y1 - y0 >= 0 else -1):
+                if 0 <= y < self.image_size:
+                    x = (y - y0) / (y1 - y0) * (x1 - x0) + x0
+                    x = int(x + .5)
+                    if 0 <= x < self.image_size:
+                        self.img_arr[y, x, :] = c
+        else:
+            for x in range(x0, x1, 1 if x1 - x0 >= 0 else -1):
+                if 0 <= x < self.image_size:
+                    y = (x - x0) / (x1 - x0) * (y1 - y0) + y0
+                    y = int(y + .5)
+                    if 0 <= y < self.image_size:
+                        self.img_arr[y, x, :] = c
+
+    def bigdot(self, picy: int, pcix: int, c=(1, 0, 0)):
         """Draw a bigger dot on the image at the given coordinates"""
-        self.img_arr[y,x,:] = c
-        self.img_arr[y + 1, x, :] = c
-        self.img_arr[y - 1, x, :] = c
-        self.img_arr[y, x + 1, :] = c
-        self.img_arr[y,x-1,:] = c
+        self.img_arr[picy, pcix, :] = c
+        self.img_arr[picy + 1, pcix, :] = c
+        self.img_arr[picy - 1, pcix, :] = c
+        self.img_arr[picy, pcix + 1, :] = c
+        self.img_arr[picy, pcix - 1, :] = c
 
     def draw_error(self, picx: int, picy: int):
         """Mark the image for areas where errors occurred"""
