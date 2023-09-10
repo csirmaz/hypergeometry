@@ -59,7 +59,7 @@ color, and the type of their surface that determines the calculation used for li
 
 ## More info
 
-Please read detailed explanations and background info in my blog
-in posts tagged with Hypergeometry: https://onkeypress.blogspot.com/search/label/Hypergeometry .
+Please read detailed explanations and background info in the wiki at
+https://github.com/csirmaz/hypergeometry/wiki
 
 
