@@ -163,12 +163,21 @@ class Span:
             derivation_method='rotate'
         )
     
-    def persp_reduce(self, focd: float):
+    def persp_reduce(self, focd: float) -> Union[Self, None]:
+        """Project the Span onto a subspace where the last coordinate is 0.
+        focd is the distance of the focal point from the origin along this coordinate.
+        Returns None if the point is behind the focal point.
+        """
         profiling('Span.persp_reduce')
         org_img = self.org.persp_reduce(focd)
+        if org_img is None:
+            return None
+        basis_img = self.basis.add(self.org).persp_reduce(focd)
+        if basis_img is None:
+            return None
         return self.__class__(
             org=org_img,
-            basis=self.basis.add(self.org).persp_reduce(focd).sub(org_img),
+            basis=basis_img.sub(org_img),
             parent=self,
             derivation_method='persp_reduce'
         )

@@ -6,13 +6,13 @@ import hypergeometry.utils as utils
 from hypergeometry.utils import NP_TYPE, DETERMINANT_LIMIT, EPSILON, profiling, NotIndependentError, XCheckError
 from hypergeometry.point import Point
 
-Self = Any
+Self = 'Poly'
 
 
 class Poly:
     """A collection of points or vectors represented as a matrix"""
     
-    def __init__(self, points, origin: Optional[str] = None):
+    def __init__(self, points, derivation_method: Optional[str] = None):
         """Accepts a 2D matrix or a list of points.
         `origin` indicates what called the constructor, for debugging
         """
@@ -65,7 +65,7 @@ class Poly:
     
     def clone(self) -> Self:
         """Returns a deep clone"""
-        r = self.__class__(self.p, origin=f'Poly.clone[{id(self)}]')
+        r = self.__class__(self.p, derivation_method=f'Poly.clone')
         return r
      
     def _get_transpose(self) -> np.ndarray:
@@ -104,7 +104,7 @@ class Poly:
 
     def map(self, lmbd) -> Self:
         """Generate a new Poly object using a lambda function applied to Point objects"""
-        return self.__class__([lmbd(Point(p)) for p in self.p], origin='Poly.map')
+        return self.__class__([lmbd(Point(p)) for p in self.p], derivation_method='Poly.map')
          
     def dim(self) -> int:
         """Return the number of dimensions"""
@@ -127,7 +127,7 @@ class Poly:
     
     def subset(self, indices: Iterable[int]) -> Self:
         """Return a Poly formed from the vectors at the given indices"""
-        return self.__class__(self.p[indices], origin=f'Poly.subset[{id(self)}]')
+        return self.__class__(self.p[indices], derivation_method=f'Poly.subset')
 
     def is_zero(self) -> bool:
         """Return whether all coordinates are very close to 0"""
@@ -150,7 +150,7 @@ class Poly:
                     axis=1
                 )
             ],
-            origin=f'Poly.get_nonzeros[{id(self)}]'
+            derivation_method=f'Poly.get_nonzeros'
         )
         assert r.dim() == self.dim()
         assert r.num() <= self.num()
@@ -190,7 +190,7 @@ class Poly:
     
     def norm(self) -> Self:
         """Normalise each vector"""
-        return self.__class__(self.p / np.sqrt(np.square(self.p).sum(axis=1, keepdims=True)), origin=f'Poly.norm[{id(self)}]')
+        return self.__class__(self.p / np.sqrt(np.square(self.p).sum(axis=1, keepdims=True)), derivation_method=f'Poly.norm')
     
     def rotate(self, coords: List[int], rad: float) -> Self:
         """Rotate each point. coords is a list of 2 coordinate indices that we rotate"""
@@ -204,12 +204,15 @@ class Poly:
         r.p[:,cb] = -s * self.p[:,ca] + c * self.p[:,cb]
         return r
 
-    def persp_reduce(self, focd: float) -> Self:
+    def persp_reduce(self, focd: float) -> Union[Self, None]:
         """Project the points onto a subspace where the last coordinate is 0.
         `focd` is the distance of the focal point from the origin along this coordinate.
+        Returns None if any of the points is behind the focal point.
         """
+        if np.any(self.p[:,-1] < focd + EPSILON):
+            return None
         a = focd / (focd - self.p[:,-1])
-        return self.__class__(self.p[:,:-1] * np.expand_dims(a, axis=1), origin=f'Poly.persp_reduce[{id(self)}]')
+        return self.__class__(self.p[:,:-1] * np.expand_dims(a, axis=1), derivation_method=f'Poly.persp_reduce')
     
     def is_orthonormal(self) -> bool:
         """Returns if the collection of vectors is an orthonormal basis (vectors are unit length and pairwise perpendicular)"""
@@ -327,7 +330,7 @@ class Poly:
                     v = None
             if v is not None:
                 out.append(v.norm())
-        r = self.__class__(out, origin=f'Poly.make_basis[{id(self)}]')
+        r = self.__class__(out, derivation_method=f'Poly.make_basis')
         if utils.XCHECK:
             if not r.is_orthonormal():
                 raise XCheckError("Output of make_basis not orthonormal")
@@ -402,7 +405,7 @@ class Poly:
             return self.norm_square
         profiling('Poly.extend_to_norm_square:do', self)
         sq = self.extend_to_square(permission=permission).make_basis()
-        r = self.__class__(np.concatenate((self.p, sq.p[self.num():]), axis=0), origin=f'Poly.extend_to_norm_square[{id(self)}]')
+        r = self.__class__(np.concatenate((self.p, sq.p[self.num():]), axis=0), derivation_method=f'Poly.extend_to_norm_square')
         assert r.is_square()
         if utils.DEBUG:
             print(f"(poly:extend_to_norm_square) Extended to {r}")
@@ -415,9 +418,9 @@ class Poly:
         profiling('Poly.apply_to', self)
         assert subject.dim() == self.num() # DIM==bNUM
         if isinstance(subject, Point):
-            return subject.__class__(subject.c @ self.p, origin='Poly.apply_to') # <(1), DIM> @ <bNUM, bDIM> -> <(1), bDIM>
+            return subject.__class__(subject.c @ self.p, derivation_method='Poly.apply_to') # <(1), DIM> @ <bNUM, bDIM> -> <(1), bDIM>
         if isinstance(subject, Poly):
-            return subject.__class__(subject.p @ self.p, origin='Poly.apply_to') # <NUM, DIM> @ <bNUM, bDIM> -> <NUM, bDIM>
+            return subject.__class__(subject.p @ self.p, derivation_method='Poly.apply_to') # <NUM, DIM> @ <bNUM, bDIM> -> <NUM, bDIM>
         raise Exception("apply_to: unknown type")
     
     def extract_from(self, subject: Union['Poly', Point], allow_projection: bool = False) -> Union['Poly', Point]:
@@ -473,7 +476,7 @@ class Poly:
                 # Check reverse as matrices that are close to being degenerate will not give correct result
                 if not np.allclose(r @ self.p, subject.c):
                     raise XCheckError(f"extract_from: Invalid result det={np.linalg.det(self.p)}")
-            return Point(r, origin='Poly.extract_from')
+            return Point(r, derivation_method='Poly.extract_from')
 
         if isinstance(subject, Poly):
             r = subject.p @ si
@@ -483,7 +486,7 @@ class Poly:
                 # Check reverse as matrices that are close to being degenerate will not give correct result
                 if not np.allclose(r @ self.p, subject.p):
                     raise XCheckError(f"extract_from: Invalid result det={np.linalg.det(self.p)}")
-            return Poly(r, origin='Poly.extract_from')
+            return Poly(r, derivation_method='Poly.extract_from')
 
         raise Exception("extract_from: unknown type")
         

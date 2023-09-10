@@ -44,7 +44,8 @@ class Renderer:
             if dump_objects:
                 print(f"Object #{ix} dim={dim}: [{obj.body.genesis()}] {obj}")
             for camera in self.cameras[::-1]:
-                bdy = camera.project(bdy)
+                if bdy is not None: # When the previous projection does not exist
+                    bdy = camera.project(bdy)
                 dim -= 1
                 self.objects_proj[dim].append(bdy)
                 if dump_objects:
@@ -62,8 +63,9 @@ class Renderer:
         """Get a list of object indices relevant for a given 2D point"""
         objs = []
         for ix, obj in enumerate(self.objects_proj[2]):
-            if obj.includes_sub(im_point_2d, permission_level=0):
-                objs.append(ix)
+            if obj is not None:
+                if obj.includes_sub(im_point_2d, permission_level=0):
+                    objs.append(ix)
         return objs
 
     def draw_wireframe(self):

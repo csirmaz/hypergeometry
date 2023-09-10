@@ -37,7 +37,8 @@ class Camera:
     
     def project(self, p: Union[Point, Poly, Span]) -> Any:
         """Project a point or body in the outer space onto the image pane.
-        Return coordinates relative to the image pane"""
+        Return coordinates relative to the image pane, or None if part of the object
+        is behind the focal point"""
         if isinstance(p, Point) or isinstance(p, Poly) or isinstance(p, Span):
             p = self.space.extract_from(p)
             return p.persp_reduce(self.focd)

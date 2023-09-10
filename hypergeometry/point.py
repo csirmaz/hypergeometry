@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Union, Optional
 import numpy as np
 
 from hypergeometry.utils import NP_TYPE, loop_many_to, EPSILON
@@ -9,7 +9,7 @@ Self = 'Point'
 class Point:
     """Represents a point or vector of arbitrary dimensions"""
     
-    def __init__(self, coords, origin: Optional[str] = None):
+    def __init__(self, coords, derivation_method: Optional[str] = None):
         """`origin` indicates what called the constructor, for debugging"""
         self.c = np.array(coords, dtype=NP_TYPE)
     
@@ -107,10 +107,13 @@ class Point:
         r.c[cb] = -s * self.c[ca] + c * self.c[cb]
         return r
     
-    def persp_reduce(self, focd: float) -> Self:
+    def persp_reduce(self, focd: float) -> Union[Self, None]:
         """Project the point onto a subspace where the last coordinate is 0.
         focd is the distance of the focal point from the origin along this coordinate.
+        Returns None if the point is behind the focal point.
         """
+        if self.c[-1] < focd + EPSILON:
+            return None
         a = focd / (focd - self.c[-1])
         return self.__class__(self.c[:-1] * a)
 
