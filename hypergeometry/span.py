@@ -15,6 +15,12 @@ class Span:
     from a given point (org):
     X = Org + x0*V0 + ... + xn*Vn
     where -inf < xi < +inf
+
+    org: the origin Point
+    basis: a Poly, the collection of vectors forming a basis or frame
+    parent: notes a parent object, for debugging
+    derivation_method: notes how it was derived from the parent, for debugging
+    name: an arbitrary name, for debugging
     """
     
     def __init__(

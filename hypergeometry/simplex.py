@@ -175,6 +175,9 @@ class Simplex(Body):
             print(f"(Simplex:intersect_line) No intersection due to combination min={all_min} max={all_max}")
         return None, all_min - all_max
 
+    def split_into_simplices(self) -> Iterable['Simplex']:
+        yield self
+
     def get_triangulated_surface(self, add_face_colors: bool = False):
         """Return a list of simplices covering the surface of this body"""
         color = None

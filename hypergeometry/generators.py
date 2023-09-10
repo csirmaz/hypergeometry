@@ -5,9 +5,45 @@ import hypergeometry.utils as utils
 from hypergeometry.utils import NP_TYPE
 from hypergeometry.point import Point
 from hypergeometry.poly import Poly
+from hypergeometry.body import Body
 from hypergeometry.simplex import Simplex
 from hypergeometry.parallelotope import Parallelotope
 from hypergeometry.objectface import ObjectFace
+
+
+def create_pyramid(*,
+                 base: Body,  # 3D in a 4D space
+                 apex: list[float],
+                 color: tuple[float, float, float],
+                 surface: str = 'matte',
+                 name: Optional[str] = None
+) -> list[ObjectFace]:
+    """Generate the list of ObjectFace objects covering a pyramid (except its base)"""
+    # C.f. decompose_with_normals
+    apex = Point(apex)
+    assert base.space_dim() == apex.dim()
+    assert base.my_dim() == base.space_dim() - 1
+    mid = base.midpoint()
+    for base_face in base.decompose():  # 2D
+        for base_simpl in base_face.split_into_simplices():  # 2D
+            face = Simplex(  # 3D
+                org=apex,
+                basis=base_simpl.as_points().sub(apex),
+                name=name
+            )
+            normal = face.basis.extend_to_norm_square(permission="1").at(-1)
+            facemid = face.midpoint()
+            m = facemid.sub(mid).dot(normal)
+            if m < 0:
+                normal = normal.scale(-1)
+            elif m == 0:
+                raise Exception("normal perpendicular to vector to midpoint?")
+            yield ObjectFace(
+                body=face,
+                normal=normal,
+                color=color,
+                surface=surface
+            )
 
 
 def scatter_sphere(*,

@@ -1,6 +1,7 @@
 from typing import Any, Iterable, Union
 
 import hypergeometry.utils as utils
+
 from hypergeometry.utils import XCheckError, EPSILON
 from hypergeometry.utils import profiling
 from hypergeometry.point import Point
@@ -16,6 +17,9 @@ class Body(Span):
     of the actual type"""
 
     def decompose(self) -> Iterable[Self]:
+        raise NotImplementedError("Implement in subclasses")
+
+    def split_into_simplices(self) -> Iterable['Body']:
         raise NotImplementedError("Implement in subclasses")
 
     def get_triangulated_surface(self, add_face_colors: bool = False):
