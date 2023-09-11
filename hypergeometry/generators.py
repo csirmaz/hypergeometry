@@ -101,6 +101,8 @@ def create_box(org, sizes, name: Optional[str] = None) -> Parallelotope:
     """
     dim = len(org)
     assert dim == len(sizes)
+    if 0 in sizes:
+        raise Exception("Do not use 0 size in any direction in create_box. For a lower dimensional box, use None")
     basis = [
         [(v if x == ix else 0) for x in range(dim)]
         for ix, v in enumerate(sizes)

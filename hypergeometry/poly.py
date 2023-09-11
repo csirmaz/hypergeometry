@@ -65,7 +65,7 @@ class Poly:
     
     def clone(self) -> Self:
         """Returns a deep clone"""
-        r = self.__class__(self.p, derivation_method=f'Poly.clone')
+        r = self.__class__(self.p, derivation_method='Poly.clone')
         return r
      
     def _get_transpose(self) -> np.ndarray:
@@ -127,7 +127,7 @@ class Poly:
     
     def subset(self, indices: Iterable[int]) -> Self:
         """Return a Poly formed from the vectors at the given indices"""
-        return self.__class__(self.p[indices], derivation_method=f'Poly.subset')
+        return self.__class__(self.p[indices], derivation_method='Poly.subset')
 
     def is_zero(self) -> bool:
         """Return whether all coordinates are very close to 0"""
@@ -150,7 +150,7 @@ class Poly:
                     axis=1
                 )
             ],
-            derivation_method=f'Poly.get_nonzeros'
+            derivation_method='Poly.get_nonzeros'
         )
         assert r.dim() == self.dim()
         assert r.num() <= self.num()
@@ -190,7 +190,7 @@ class Poly:
     
     def norm(self) -> Self:
         """Normalise each vector"""
-        return self.__class__(self.p / np.sqrt(np.square(self.p).sum(axis=1, keepdims=True)), derivation_method=f'Poly.norm')
+        return self.__class__(self.p / np.sqrt(np.square(self.p).sum(axis=1, keepdims=True)), derivation_method='Poly.norm')
     
     def rotate(self, coords: List[int], rad: float) -> Self:
         """Rotate each point. coords is a list of 2 coordinate indices that we rotate"""
@@ -212,7 +212,7 @@ class Poly:
         if np.any(self.p[:,-1] < focd + EPSILON):
             return None
         a = focd / (focd - self.p[:,-1])
-        return self.__class__(self.p[:,:-1] * np.expand_dims(a, axis=1), derivation_method=f'Poly.persp_reduce')
+        return self.__class__(self.p[:,:-1] * np.expand_dims(a, axis=1), derivation_method='Poly.persp_reduce')
     
     def is_orthonormal(self) -> bool:
         """Returns if the collection of vectors is an orthonormal basis (vectors are unit length and pairwise perpendicular)"""
@@ -330,7 +330,7 @@ class Poly:
                     v = None
             if v is not None:
                 out.append(v.norm())
-        r = self.__class__(out, derivation_method=f'Poly.make_basis')
+        r = self.__class__(out, derivation_method='Poly.make_basis')
         if utils.XCHECK:
             if not r.is_orthonormal():
                 raise XCheckError("Output of make_basis not orthonormal")
@@ -368,7 +368,7 @@ class Poly:
         profiling('Poly.extend_to_square:do', self)
         while True:
             e = self.__class__.from_random(dim=self.dim(), num=(self.dim() - self.num()))
-            n = self.__class__(np.concatenate((self.p, e.p), axis=0), origin=f'Poly.extend_to_square[{id(self)}]')
+            n = self.__class__(np.concatenate((self.p, e.p), axis=0), derivation_method='Poly.extend_to_square')
             assert n.is_square()
             if n.is_independent():
                 self.square = n
@@ -405,7 +405,7 @@ class Poly:
             return self.norm_square
         profiling('Poly.extend_to_norm_square:do', self)
         sq = self.extend_to_square(permission=permission).make_basis()
-        r = self.__class__(np.concatenate((self.p, sq.p[self.num():]), axis=0), derivation_method=f'Poly.extend_to_norm_square')
+        r = self.__class__(np.concatenate((self.p, sq.p[self.num():]), axis=0), derivation_method='Poly.extend_to_norm_square')
         assert r.is_square()
         if utils.DEBUG:
             print(f"(poly:extend_to_norm_square) Extended to {r}")
