@@ -1,8 +1,8 @@
-from typing import Any, Iterable
+from typing import Any, Iterable, Optional
 import numpy as np
 
 import hypergeometry.utils as utils
-from hypergeometry.utils import select_of, loop_many_to, profiling
+from hypergeometry.utils import select_of, loop_many_to_v, profiling, NP_TYPE
 from hypergeometry.point import Point
 from hypergeometry.poly import Poly
 from hypergeometry.body import Body
@@ -54,11 +54,22 @@ class Parallelotope(Body):
             
     def midpoint(self) -> Point:
         return self.org.add( self.basis.sum().scale(.5) )
-        
-    def generate_grid(self, density: int) -> Iterable[Point]:
-        """Yield a series of points inside the body"""
-        for i in loop_many_to(num=self.my_dim(), max_=density, scaled=True):
-            yield self.apply_to(Point(i))
+
+    def slice(self, div: list[int]) -> Iterable['Parallelotope']:
+        """Slice up the parallelotope along each dimension into the number of pieces noted in `div`"""
+        assert len(div) == self.my_dim()
+        new_basis = Poly(self.basis.p / np.array(div, dtype=NP_TYPE))
+        if utils.DEBUG:
+            print(f"(slice) self={self} div={div} new basis={new_basis}")
+        for v in loop_many_to_v(div, scaled=True):
+            if utils.DEBUG:
+                print(f"(slice) v={v}")
+            yield Parallelotope(
+                org=self.apply_to(Point(v)),
+                basis=new_basis,
+                parent=self,
+                derivation_method='slice'
+            )
 
     def split_into_simplices(self) -> Iterable[Simplex]:
         if self.my_dim() < 2:
@@ -96,18 +107,26 @@ class Parallelotope(Body):
         else:
             raise NotImplementedError("split_into_simplices not implemented for higher dimensions")
 
-    def get_triangulated_surface(self, add_face_colors: bool = False):
-        """Return a list of simplices covering the surface of this body"""
+    def get_triangulated_surface(self, div: Optional[list[int]] = None, add_face_colors: bool = False):
+        """Return a list of simplices covering the surface of this body
+        - div: If provided, slice up the parallelotope using slice()
+        - add_face_colors: if True, generate random colors for each face (not compatible with `div`)
+        """
         if utils.DEBUG:
             print(f"(Parallelotope.get_tri) self={self} self as points={self.as_points()}")
         color = None
-        for face, normal in self.decompose_with_normals():
-            if add_face_colors:
-                color = np.random.rand(3)
-                color /= np.max(color)
-            if utils.DEBUG:
-                print(f"(Parallelotope.get_tri) face={face} face as points={face.as_points()}")
-            for simplex in face.split_into_simplices():
+        if div is None:
+            slices = [self]
+        else:
+            slices = self.slice(div)
+        for slice in slices:
+            for face, normal in slice.decompose_with_normals():
+                if add_face_colors:
+                    color = np.random.rand(3)
+                    color /= np.max(color)
                 if utils.DEBUG:
-                    print(f"(Parallelotope.get_tri) simplex={simplex} simplex as points={simplex.as_points()}")
-                yield simplex, normal, color
+                    print(f"(Parallelotope.get_tri) face={face} face as points={face.as_points()}")
+                for simplex in face.split_into_simplices():
+                    if utils.DEBUG:
+                        print(f"(Parallelotope.get_tri) simplex={simplex} simplex as points={simplex.as_points()}")
+                    yield simplex, normal, color

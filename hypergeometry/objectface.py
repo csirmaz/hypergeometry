@@ -42,12 +42,13 @@ class ObjectFace:
             cls,
             body: Body,
             color: tuple[float, float, float] = (1., 1., 1.),
-            surface: str = 'matte',
-            use_face_colors: bool = False
+            div: Optional[list[int]] = None,
+            surface: Optional[str] = 'matte',
+            use_face_colors: Optional[bool] = False
         ) -> Iterable[Self]:
         """Generate a list of ObjectFace objects from the faces of `body`"""
         assert body.my_dim() == body.space_dim()
-        for face, normal, face_color in body.get_triangulated_surface(add_face_colors=use_face_colors):
+        for face, normal, face_color in body.get_triangulated_surface(div=div, add_face_colors=use_face_colors):
             if use_face_colors:
                 color = face_color
             yield cls(body=face, normal=normal, color=color, surface=surface)

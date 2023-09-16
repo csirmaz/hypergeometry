@@ -1,7 +1,7 @@
 from typing import Union, Optional
 import numpy as np
 
-from hypergeometry.utils import NP_TYPE, loop_many_to, EPSILON
+from hypergeometry.utils import NP_TYPE, EPSILON
 
 Self = 'Point'
 
@@ -31,13 +31,6 @@ class Point:
         """Create a Point of `dim` dimensions with all coordinates being `v`"""
         return cls([v for i in range(dim)])
     
-    @classmethod
-    def generate_grid(cls, dim: int, steps: int) -> Self:
-        """Yield all points in the [0,1]**dim region (inclusive) in a grid
-        that has `steps+1` points along the axes."""
-        for r_ in loop_many_to(num=dim, max_=steps, scaled=True):
-            yield cls(r_)
-
     def reset_cache(self) -> Self:
         return self
 

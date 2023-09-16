@@ -21,14 +21,6 @@ def point_test():
     assert not p1.allclose(p2)
     assert p2.ge(p1)
     assert p2.persp_reduce(-5).dim() == 2
-    
-    target=[
-        Point([0,0]), Point([0,.5]), Point([0,1]),
-        Point([.5,0]), Point([.5,.5]), Point([.5,1]),
-        Point([1,0]), Point([1,.5]), Point([1,1]),
-    ]
-    for i, p in enumerate(Point.generate_grid(dim=2, steps=2)):
-        assert target[i].eq(p)
 
 
 def poly_test():

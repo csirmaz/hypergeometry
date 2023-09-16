@@ -56,68 +56,78 @@ def make_house():
     return objs
 
 
-def make_tree():
+def make_tree(x, y, z):
     trunk_color = (.6, .5, 0)
     leaf_color = (.4, 1., .3)
-    tree_offset = -1.5
-    trunk_radius = .2
-    trunk_height = 2.5
-    branch_height = 1.5 + tree_offset
-    branch_horiz = 1.2
-    branch_vert=.8
-    branch_radius = .1
-    leaf_size = .15
-    mid_foliage_radius = 1.3
+    zoom = .5
+    tree_offset = 0
+    trunk_radius = .2 * zoom
+    trunk_height = 3.5 * zoom
+    branch_height = 2.5 * zoom + tree_offset
+    branch_horiz = 1.2 * zoom
+    branch_vert = .8 * zoom
+    branch_radius = .1 * zoom
+    leaf_size = .15 * zoom
+    mid_foliage_radius = 1.3 * zoom
     mid_foliage_num = 150
-    side_foliage_radius = .8
+    side_foliage_radius = .8 * zoom
     side_foliage_num = 80
 
     pr = create_prism
 
     objs4 = [
-        [pr(org=[0,0,0,tree_offset], i=3, r=trunk_radius, length=trunk_height, name='trunk'), trunk_color],
+        [pr(org=[x, y, z, tree_offset], i=3, r=trunk_radius, length=trunk_height, name='trunk'), trunk_color],
 
-        [pr(org=[0, 0, 0, branch_height], i=0, r=branch_radius, length=branch_horiz, name='branch1'), trunk_color],
-        [pr(org=[0, 0, 0, branch_height], i=1, r=branch_radius, length=branch_horiz, name='branch1'), trunk_color],
-        [pr(org=[0, 0, 0, branch_height], i=2, r=branch_radius, length=branch_horiz, name='branch1'), trunk_color],
-        [pr(org=[0, 0, 0, branch_height], i=3, r=branch_radius, length=branch_horiz, name='branch1'), trunk_color],
-        [pr(org=[0, 0, 0, branch_height], i=0, r=branch_radius, length=-branch_horiz, name='branch1'), trunk_color],
-        [pr(org=[0, 0, 0, branch_height], i=1, r=branch_radius, length=-branch_horiz, name='branch1'), trunk_color],
-        [pr(org=[0, 0, 0, branch_height], i=2, r=branch_radius, length=-branch_horiz, name='branch1'), trunk_color],
-        [pr(org=[0, 0, 0, branch_height], i=3, r=branch_radius, length=-branch_horiz, name='branch1'), trunk_color],
+        [pr(org=[x, y, z, branch_height], i=0, r=branch_radius, length=branch_horiz, name='branch1'), trunk_color],
+        [pr(org=[x, y, z, branch_height], i=1, r=branch_radius, length=branch_horiz, name='branch1'), trunk_color],
+        [pr(org=[x, y, z, branch_height], i=2, r=branch_radius, length=branch_horiz, name='branch1'), trunk_color],
+        [pr(org=[x, y, z, branch_height], i=3, r=branch_radius, length=branch_horiz, name='branch1'), trunk_color],
+        [pr(org=[x, y, z, branch_height], i=0, r=branch_radius, length=-branch_horiz, name='branch1'), trunk_color],
+        [pr(org=[x, y, z, branch_height], i=1, r=branch_radius, length=-branch_horiz, name='branch1'), trunk_color],
+        [pr(org=[x, y, z, branch_height], i=2, r=branch_radius, length=-branch_horiz, name='branch1'), trunk_color],
+        [pr(org=[x, y, z, branch_height], i=3, r=branch_radius, length=-branch_horiz, name='branch1'), trunk_color],
 
-        [pr(org=[branch_horiz, 0, 0, branch_height], i=3, r=branch_radius, length=branch_vert, name='branch2'), trunk_color],
-        [pr(org=[0, branch_horiz, 0, branch_height], i=3, r=branch_radius, length=branch_vert, name='branch2'), trunk_color],
-        [pr(org=[0, 0, branch_horiz, branch_height], i=3, r=branch_radius, length=branch_vert, name='branch2'), trunk_color],
-        [pr(org=[-branch_horiz, 0, 0, branch_height], i=3, r=branch_radius, length=branch_vert, name='branch2'), trunk_color],
-        [pr(org=[0, -branch_horiz, 0, branch_height], i=3, r=branch_radius, length=branch_vert, name='branch2'), trunk_color],
-        [pr(org=[0, 0, -branch_horiz, branch_height], i=3, r=branch_radius, length=branch_vert, name='branch2'), trunk_color],
+        [pr(org=[x+branch_horiz, y, z, branch_height], i=3, r=branch_radius, length=branch_vert, name='branch2'), trunk_color],
+        [pr(org=[x, y+branch_horiz, z, branch_height], i=3, r=branch_radius, length=branch_vert, name='branch2'), trunk_color],
+        [pr(org=[x, y, z+branch_horiz, branch_height], i=3, r=branch_radius, length=branch_vert, name='branch2'), trunk_color],
+        [pr(org=[x-branch_horiz, y, z, branch_height], i=3, r=branch_radius, length=branch_vert, name='branch2'), trunk_color],
+        [pr(org=[x, y-branch_horiz, z, branch_height], i=3, r=branch_radius, length=branch_vert, name='branch2'), trunk_color],
+        [pr(org=[x, y, z-branch_horiz, branch_height], i=3, r=branch_radius, length=branch_vert, name='branch2'), trunk_color],
     ]
 
     objs = []
     for box in objs4:
         objs.extend(ObjectFace.from_body(box[0], color=box[1]))
 
-    if True:
-        objs.extend(scatter_sphere(org=[0, 0, 0, tree_offset + trunk_height], rad=mid_foliage_radius, n=mid_foliage_num, size=leaf_size, color=leaf_color))
+    if True:  # foliage
+        objs.extend(scatter_sphere(org=[x, y, z, tree_offset + trunk_height], rad=mid_foliage_radius, n=mid_foliage_num, size=leaf_size, color=leaf_color))
 
-        objs.extend(scatter_sphere(org=[branch_horiz, 0, 0, branch_height + branch_vert], rad=side_foliage_radius, n=side_foliage_num, size=leaf_size, color=leaf_color))
-        objs.extend(scatter_sphere(org=[0, branch_horiz, 0, branch_height + branch_vert], rad=side_foliage_radius, n=side_foliage_num, size=leaf_size, color=leaf_color))
-        objs.extend(scatter_sphere(org=[0, 0, branch_horiz, branch_height + branch_vert], rad=side_foliage_radius, n=side_foliage_num, size=leaf_size, color=leaf_color))
+        objs.extend(scatter_sphere(org=[x+branch_horiz, y, z, branch_height + branch_vert], rad=side_foliage_radius, n=side_foliage_num, size=leaf_size, color=leaf_color))
+        objs.extend(scatter_sphere(org=[x, y+branch_horiz, z, branch_height + branch_vert], rad=side_foliage_radius, n=side_foliage_num, size=leaf_size, color=leaf_color))
+        objs.extend(scatter_sphere(org=[x, y, z+branch_horiz, branch_height + branch_vert], rad=side_foliage_radius, n=side_foliage_num, size=leaf_size, color=leaf_color))
 
-        objs.extend(scatter_sphere(org=[-branch_horiz, 0, 0, branch_height + branch_vert], rad=side_foliage_radius, n=side_foliage_num, size=leaf_size, color=leaf_color))
-        objs.extend(scatter_sphere(org=[0, -branch_horiz, 0, branch_height + branch_vert], rad=side_foliage_radius, n=side_foliage_num, size=leaf_size, color=leaf_color))
-        objs.extend(scatter_sphere(org=[0, 0, -branch_horiz, branch_height + branch_vert], rad=side_foliage_radius, n=side_foliage_num, size=leaf_size, color=leaf_color))
+        objs.extend(scatter_sphere(org=[x-branch_horiz, y, z, branch_height + branch_vert], rad=side_foliage_radius, n=side_foliage_num, size=leaf_size, color=leaf_color))
+        objs.extend(scatter_sphere(org=[x, y-branch_horiz, z, branch_height + branch_vert], rad=side_foliage_radius, n=side_foliage_num, size=leaf_size, color=leaf_color))
+        objs.extend(scatter_sphere(org=[x, y, z-branch_horiz, branch_height + branch_vert], rad=side_foliage_radius, n=side_foliage_num, size=leaf_size, color=leaf_color))
 
     # ROTATE
-    objs = [o.rotate(coords=[0, 1], rad=.4) for o in objs]
-    objs = [o.rotate(coords=[0, 2], rad=.3) for o in objs]
-    objs = [o.rotate(coords=[2, 3], rad=.1) for o in objs]
+    # objs = [o.rotate(coords=[0, 1], rad=.4) for o in objs]
+    # objs = [o.rotate(coords=[0, 2], rad=.3) for o in objs]
+    # objs = [o.rotate(coords=[2, 3], rad=.1) for o in objs]
     return objs
+
 
 def make_ground():
     objs = []
-    objs.extend(ObjectFace.from_body(body=create_box([0,-11,0,0], [2, 20, -.1, -.1]), color=(.2, .8, 0)))
+    # ground
+    objs.extend(ObjectFace.from_body(body=create_box([-2,0,-2,0], [4, 20, 4, -.1]), color=(.2, .8, 0), div=[1, 5, 1, 1]))
+    # road
+    objs.extend(ObjectFace.from_body(body=create_box([-.25,0,-.25,.05], [.5, 20, .5, -.1]), color=(.4, .4, .4), div=[1, 5, 1, 1]))
+    # trees
+    for x in range(2):
+        for y in range(20):
+            for z in range(2):
+                    objs.extend(make_tree(x+.5, y, z+.5))
     return objs
 
 def main():

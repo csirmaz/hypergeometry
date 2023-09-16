@@ -92,19 +92,20 @@ def loop_bin(num: int):
             break
 
 
-def loop_many_to(num: int, max_: int, scaled=False):
-    """Yield list of `num` length where each element loops from 0 to `max-1`.
-    If `scaled`, scales the results so the maximum becomes 1.
+def loop_many_to_v(max_: list[int], scaled=False):
+    """Yield list of `num` length where element i loops from 0 to `max_[i]-1`.
+    If `scaled`, scales the results so the maximum becomes 1-1/max_.
     """
+    num = len(max_)
     r = [0 for i in range(num)]
-    max_value = max_ - 1
+    max_values = [x - 1 for x in max_]
     while True:
         if scaled:
-            yield [x/(max_-1) for x in r]
+            yield [(0 if x == 0 else x / max_[i]) for i, x in enumerate(r)]
         else:
-            yield list(r)
+            yield list(r)  # clone
         for i in range(num-1, -1, -1):
-            if r[i] < max_value:
+            if r[i] < max_values[i]:
                 r[i] += 1
                 for j in range(i+1, num, 1):
                     r[j] = 0

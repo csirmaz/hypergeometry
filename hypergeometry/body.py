@@ -1,4 +1,4 @@
-from typing import Any, Iterable, Union
+from typing import Any, Iterable, Union, Optional
 
 import hypergeometry.utils as utils
 
@@ -22,7 +22,7 @@ class Body(Span):
     def split_into_simplices(self) -> Iterable['Body']:
         raise NotImplementedError("Implement in subclasses")
 
-    def get_triangulated_surface(self, add_face_colors: bool = False):
+    def get_triangulated_surface(self, div: Optional[list[int]] = None, add_face_colors: Optional[bool] = False):
         raise NotImplementedError("Implement in subclasses")
 
     def midpoint(self) -> Point:

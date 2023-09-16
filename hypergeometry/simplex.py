@@ -1,4 +1,4 @@
-from typing import Iterable, Union, Any, List
+from typing import Iterable, Union, Any, Optional
 import numpy as np
 
 import hypergeometry.utils as utils
@@ -178,7 +178,7 @@ class Simplex(Body):
     def split_into_simplices(self) -> Iterable['Simplex']:
         yield self
 
-    def get_triangulated_surface(self, add_face_colors: bool = False):
+    def get_triangulated_surface(self, div: Optional[list[int]] = None, add_face_colors: Optional[bool] = False):
         """Return a list of simplices covering the surface of this body"""
         color = None
         for face, normal in self.decompose_with_normals():
