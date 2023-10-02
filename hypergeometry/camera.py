@@ -8,6 +8,7 @@ from hypergeometry.span import Span
 
 Self = Any
 
+
 class Camera:
     """A camera is defined by a Span spanning the whole space with an orthonormal basis.
     The first D-1 vectors form the image pane, while the focal point is focd away

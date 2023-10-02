@@ -13,16 +13,16 @@ class Renderer:
 
     def __init__(self,
         objects: list[ObjectFace],
-        cameras: list[Camera],
+        cameras: list[Camera],  # First 3D->2D, then 4D->3D, etc.
         lights: list[Light],
-        img_range: float,
-        img_step: float,
+        img_range: float,  # the 2D coords run between [-a..a] x [-a..a]
+        img_step: float,  # resolution
         dump_objects: bool = False,
     ):
         self.objects = objects
-        self.cameras = cameras  # First 3D->2D, then 4D->3D, etc.
+        self.cameras = cameras
         self.lights = lights
-        self.img_range = img_range # 2D coords [-a..a] x [-a..a]
+        self.img_range = img_range
         self.img_step = img_step
         self.errors = {'ray3d_intersect': 0, 'no_min_obj3': 0, 'ray4d_intersect': 0, 'no_min_obj4': 0}
         self.objects_proj = None  # dict[<dimension>: list[Span]]

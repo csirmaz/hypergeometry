@@ -6,6 +6,8 @@ and CGI tools to render a 4D scene as a 2D image.
 
 ## Quickstart
 
+`main.py` contains the definition of a simple 4D scene and code to render it
+into a 2D image.
 
 ## Classes and object types
 
@@ -56,6 +58,31 @@ so in a 4D scene, we work with 3D faces covering the surfaces of the 4D objects.
 The faces also need to be oriented, so we store their normal vector, as well as their
 color, and the type of their surface that determines the calculation used for lighting effects
 (e.g. matte, translucent, etc.)
+
+### Camera
+
+`Camera(space:Span, focd:float)` - Defines a camera.
+A camera is defined by a Span spanning the whole space with an orthonormal basis.
+The first D-1 vectors form the image pane, while the focal point is
+`focd` (focal distance) away along the last vector.
+
+### Light
+
+`Light(p:Point)` - Defines a point light.
+
+### Renderer
+
+```python
+Renderer(
+    objects: list[ObjectFace],
+    cameras: list[Camera],  # one for each dimension reduction
+    lights: list[Light],
+    img_range: float,  # the maximum 2D coordinate in the 2D image
+    img_step: float  # the resolution of the 2D image
+)
+```
+Groups objects, cameras and lights and contains logic to render a 4D scene
+into a 2D image.
 
 ## More info
 
