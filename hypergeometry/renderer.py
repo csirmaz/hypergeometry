@@ -70,7 +70,10 @@ class Renderer:
 
     def draw_wireframe(self):
         """Draw a fast wireframe image"""
-        for obj_ix, body in enumerate(self.objects_proj[2]):
+        obj_ixs = range(len(self.objects))
+        obj_ixs = sorted(obj_ixs, key=self.objects_dist.get, reverse=True)
+        for obj_ix in obj_ixs:
+            body = self.objects_proj[2][obj_ix]
             if body is None:
                 continue
             color = self.objects[obj_ix].color
